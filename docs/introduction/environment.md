@@ -23,24 +23,13 @@ wsl --install
 ## VSCODE配置
 同学们打开vscode之后需要点击下图红色三角形所示的按钮，进入到插件管理界面进行dev containers插件的安装。
 
-<img src="../images/vscodeplugin.png" alt="WSL安装示意" width="60%" height="60%">
+![WSL安装示意](../images/vscodeplugin.png)
 
 在同学们安装好dev containers之后，请将我们的实验代码仓库fork到自己的的github账户下，然后点击左下角的齿轮打开command palette
-
-<img src="../images/devcon1.png" alt="WSL安装示意" width="60%" height="60%">
-
-<!-- ![dev安装示意](../images/devcon1.png) -->
-
+![dev安装示意](../images/devcon1.png)
 然后点击红色所示的按钮，vscode便会提示同学们登录自己的github账号，然后选择前面我们clone的实验代码仓库，vscode便会自动开始实验环境的搭建与配置。
-
-<img src="../images/devcon2.png" alt="WSL安装示意" width="60%" height="60%">
-
-
-<!-- ![dev安装示意2](../images/devcon2.png) -->
-
+![dev安装示意2](../images/devcon2.png)
 并在点击右下角的show log即可观察环境配置进度
-
-<img src="../images/showlog.png" alt="WSL安装示意" width="60%" height="60%">
-<!-- ![showlog](../images/showlog.png) -->
+![showlog](../images/showlog.png)
 
 
