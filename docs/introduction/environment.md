@@ -25,7 +25,7 @@ wsl --install
 
 ![WSL安装示意](../images/vscodeplugin.png)
 
-在同学们安装好dev containers之后，请将我们的实验代码仓库fork到自己的的github账户下，然后点击左下角的齿轮打开command palette
+在同学们安装好 dev containers 之后，请将我们的实验代码仓库fork到自己的的github账户下，然后点击左下角的齿轮打开command palette
 
 ![dev安装示意](../images/devcon1.png)
 
@@ -36,5 +36,9 @@ wsl --install
 并在点击右下角的show log即可观察环境配置进度
 
 ![showlog](../images/showlog.png)
+
+待同学们使用 dev containers 构建完成之后 vscode的左侧会出现如下图所示的界面，如果数字`1`对应的按钮后续用于代码调试，数字`2`对应的按钮后续用于项目代码的编译构建。
+
+![showlog](../images/envok.png)
 
 
