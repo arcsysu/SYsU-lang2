@@ -26,10 +26,14 @@ wsl --install
 ![WSL安装示意](../images/vscodeplugin.png)
 
 在同学们安装好dev containers之后，请将我们的实验代码仓库fork到自己的的github账户下，然后点击左下角的齿轮打开command palette
+
 ![dev安装示意](../images/devcon1.png)
+
 然后点击红色所示的按钮，vscode便会提示同学们登录自己的github账号，然后选择前面我们clone的实验代码仓库，vscode便会自动开始实验环境的搭建与配置。
+
 ![dev安装示意2](../images/devcon2.png)
 并在点击右下角的show log即可观察环境配置进度
+
 ![showlog](../images/showlog.png)
 
 
