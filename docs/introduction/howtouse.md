@@ -64,6 +64,10 @@ set(TASK4_REVIVE OFF)
 
 ![showlog](../images/maindebug.png)
 
-然后在`PROJECT STATUS`处将`DEBUG`配置为`task1`，然后点击左侧插件菜单栏中的量杯按钮`TESTING`。这里假设我实验一的第一个测试样例就没能正常通过，点击如下图所示的debug按钮即可进入调试的图形界面。
+然后在`PROJECT STATUS`处将`DEBUG`配置为`task1`
+
+![showlog](../images/debugtest1.png)
+
+然后点击左侧插件菜单栏中的量杯按钮`TESTING`。这里假设我实验一的第一个测试样例就没能正常通过，点击如下图所示的debug按钮即可进入调试的图形界面。
 
 ![showlog](../images/debuganniu.png)
