@@ -29,7 +29,7 @@ wsl --install
 
 ![dev安装示意](../images/devcon1.png)
 
-然后点击红色所示的按钮，vscode便会提示同学们登录自己的github账号，然后选择前面我们clone的实验代码仓库，vscode便会自动开始实验环境的搭建与配置。
+然后点击红色所示的按钮，vscode便会提示同学们登录自己的github账号，然后选择前面我们fork到自己账号下的的实验代码仓库，vscode便会自动开始实验环境的搭建与配置。
 
 ![dev安装示意2](../images/devcon2.png)
 
