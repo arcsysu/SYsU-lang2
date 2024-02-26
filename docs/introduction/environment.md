@@ -4,7 +4,7 @@
 
 
 ## 软件安装
-由于大部分同学都是使用Windows电脑进行开发，所以这里采用windows11系统进行演示。首先需要同学们下载并安装以下三种软件。由于Windows系统下docker的正常使用需要wsl环境，所以请同学们在安装docker之前先安装wsl。
+由于大部分同学都是使用 `Windows` 电脑进行开发，所以这里采用windows11系统进行演示。首先需要同学们下载并安装以下三种软件。由于 `Windows` 系统下 `docker` 的正常使用需要 `wsl` 环境，所以请同学们在安装 `docker` 之前先安装 `wsl`。(对于 `linux` 系统和  `mac` 系统的同学而言，只需要跳过 `wsl` 的安装即可)
 - wsl
 - docker
 - vscode
