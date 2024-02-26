@@ -1,0 +1,5 @@
+*
+!.gitignore
+!install.sh
+!uninstall.sh
+!image-install.sh

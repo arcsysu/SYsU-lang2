@@ -1,0 +1,12 @@
+{
+    "recommendations": [
+        "ms-vscode.cpptools-extension-pack",
+        "daohong-emilio.yash",
+        "mike-lischke.vscode-antlr4",
+        "ms-vscode.cmake-tools",
+        "twxs.cmake",
+        "ms-vscode-remote.vscode-remote-extensionpack",
+        "ms-python.flake8",
+        "cheshirekow.cmake-format"
+    ]
+}

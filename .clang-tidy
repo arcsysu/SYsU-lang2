@@ -1,0 +1,114 @@
+---
+Checks: "-*\
+  ,clang-*\
+  ,concurrency-*\
+  ,performance-*\
+  ,portability-*\
+  ,readability-*\
+  ,modernize-*\
+  ,-readability-braces-around-statements\
+  ,-readability-identifier-length\
+  ,-readability-magic-numbers\
+  ,-readability-redundant-access-specifiers\
+  ,-readability-implicit-bool-conversion\
+  ,-readability-qualified-auto\
+  ,-modernize-use-trailing-return-type\
+  ,-modernize-use-nodiscard\
+  ,-modernize-avoid-c-arrays"
+
+CheckOptions:
+  # Class
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.ClassIgnoredRegexp
+    value: "^_|_$"
+  - key: readability-identifier-naming.ClassMethodIgnoredRegexp
+    value: "^get_|^set_"
+
+  # ClassMember
+  - key: readability-identifier-naming.ClassMemberCase
+    value: CamelCase
+  - key: readability-identifier-naming.ClassMemberPrefix
+    value: g
+  - key: readability-identifier-naming.ClassMemberIgnoredRegexp
+    value: "^_|_$"
+
+  # Constant
+  - key: readability-identifier-naming.ConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.ConstantPrefix
+    value: k
+  - key: readability-identifier-naming.ConstantIgnoredRegexp
+    value: "^_|_$"
+
+  # Enum
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumIgnoredRegexp
+    value: "^_|_$"
+
+  # Function
+  - key: readability-identifier-naming.FunctionCase
+    value: lower_case
+  - key: readability-identifier-naming.FunctionIgnoredRegexp
+    value: "^_|_$"
+
+  # GlobalVariable
+  - key: readability-identifier-naming.StaticVariableCase
+    value: CamelCase
+  - key: readability-identifier-naming.GlobalVariablePrefix
+    value: g
+  - key: readability-identifier-naming.GlobalVariableIgnoredRegexp
+    value: "^_|_$"
+
+  # Macro
+  - key: readability-identifier-naming.MacroDefinitionCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.MacroDefinitionIgnoredRegexp
+    value: "^_|_$|self"
+
+  # Member
+  - key: readability-identifier-naming.MemberCase
+    value: CamelCase
+  - key: readability-identifier-naming.MemberPrefix
+    value: m
+  - key: readability-identifier-naming.MemberIgnoredRegexp
+    value: "^_|_$"
+
+  # Method
+  - key: readability-identifier-naming.MethodCase
+    value: lower_case
+  - key: readability-identifier-naming.MethodIgnoredRegexp
+    value: "^_|_$|^get_|^set_|^s_|^w_"
+
+  # Namespace
+  - key: readability-identifier-naming.NamespaceCase
+    value: Camel_Snake_Case
+  - key: readability-identifier-naming.NamespaceIgnoredRegexp
+    value: "^_|_$|err"
+
+  # Parameter
+  - key: readability-identifier-naming.ParameterCase
+    value: camelBack
+  - key: readability-identifier-naming.ParameterIgnoredRegexp
+    value: "^_|_$"
+
+  # StaticVariable
+  - key: readability-identifier-naming.StaticVariableCase
+    value: CamelCase
+  - key: readability-identifier-naming.StaticVariablePrefix
+    value: s
+  - key: readability-identifier-naming.StaticVariableIgnoredRegexp
+    value: "^_|_$"
+
+  # Union
+  - key: readability-identifier-naming.UnionCase
+    value: CamelCase
+  - key: readability-identifier-naming.UnionIgnoredRegexp
+    value: "^_|_$"
+
+  # Variable
+  - key: readability-identifier-naming.VariableCase
+    value: camelBack
+  - key: readability-identifier-naming.VariableIgnoredRegexp
+    value: "^_|_$"

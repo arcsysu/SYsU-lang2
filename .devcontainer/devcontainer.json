@@ -1,0 +1,48 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
+{
+	"name": "SYsU-lang",
+
+	// Use prebuild image
+	"image": "sumuzhe317/sysu-lang:latest",
+	// Using Dockerfile to build, more info: https://containers.dev/guide/dockerfile
+	// "build": {
+	// 	"dockerfile": "Dockerfile",
+	// 	// Update 'VARIANT' to pick a non-default Python version. Use '3' for latest 3.x, '2' for latest 2.x.
+	// 	"args": { "VARIANT": "3" },
+	// 	"context": ".."
+	// },
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {
+	// 	"ghcr.io/devcontainers/features/git:1": {
+    //         "version": "latest",
+    //         "ppa": "false"
+    //     }
+    // },
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "uname -a",
+
+	// Configure tool-specific properties.
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-vscode.cpptools-extension-pack",
+				"daohong-emilio.yash",
+				"mike-lischke.vscode-antlr4",
+				"ms-vscode.cmake-tools",
+				"twxs.cmake",
+				"ms-vscode-remote.vscode-remote-extensionpack"
+			]
+		}
+	},
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "sysu",
+
+	"runArgs": [ "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined" ]
+}
