@@ -37,7 +37,7 @@ wsl --install
 
 ![showlog](../images/showlog.png)
 
-待同学们使用 dev containers 构建完成之后 vscode的左侧会出现如下图所示的界面，如果数字`1`对应的按钮后续用于代码调试，数字`2`对应的按钮后续用于项目代码的编译构建。
+待同学们使用 dev containers 构建完成之后 vscode的左侧会出现如下图所示的界面，数字`1`对应的按钮后续用于代码调试，数字`2`对应的按钮后续用于项目代码的编译构建。此时意味着环境搭建已经完成，下一小节会详细介绍框架的使用方法。
 
 ![showlog](../images/envok.png)
 
