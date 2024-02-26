@@ -62,13 +62,7 @@ wsl --install
 
 ![github 仓库选择](../images/githubrepselect.png)
 
-然后选择前面我们fork到自己账号下的的实验代码仓库，选择主分支，vscode便会自动开始实验环境的搭建与配置。
-
-![github 登录授权](../images/githublog.png)
-
-
-
-并在点击右下角的show log即可观察环境配置进度
+然后选择前面我们fork到自己账号下的的实验代码仓库，选择主分支，vscode便会自动开始实验环境的搭建与配置。并在点击右下角的show log即可观察环境配置进度
 
 ![showlog](../images/showlog.png)
 
