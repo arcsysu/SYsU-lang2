@@ -68,6 +68,6 @@ wsl --install
 
 待同学们使用 dev containers 构建完成之后，就意味着实验相关的所有 linux  系统应用软件以及 vscode 插件都已经安装完成了。在下一小节中我们将会详细介绍如何使用实验框架。
 
-![showlog](../images/envok.png)
+<!-- ![showlog](../images/envok.png) -->
 
 
