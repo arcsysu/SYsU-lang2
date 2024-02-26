@@ -45,7 +45,7 @@ wsl --install
 
 ![dev安装示意2](../images/devcon2.png)
 
-在这个时候vscode会出现下图所示的窗口提示同学们登录自己的github账号，请同学们点击下图中所示的`github`按钮
+在这个时候 vscode 会出现下图所示的窗口提示同学们登录自己的 github 账号，请同学们点击下图中所示的`github`按钮
 
 ![github 登录示意](../images/githublog.png)
 
@@ -58,15 +58,15 @@ wsl --install
 ![github 登录确认](../images/githublogweb.png)
 
 
-成功授权 github 登录信息之后，同学们的电脑会回到 vscode 的窗口，弹出如下所示窗口。
+成功授权 github 登录信息之后，同学们的电脑会回到 vscode 的界面，弹出如下所示窗口。请同学们选择前面我们 fork 到自己账号下的的实验代码仓库，选择主分支。
 
 ![github 仓库选择](../images/githubrepselect.png)
 
-然后选择前面我们fork到自己账号下的的实验代码仓库，选择主分支，vscode便会自动开始实验环境的搭建与配置。并在点击右下角的show log即可观察环境配置进度
+此时 vscode 便会自动开始实验环境的搭建与配置。点击右下角的 show log 即可观察环境配置进度
 
 ![showlog](../images/showlog.png)
 
-待同学们使用 dev containers 构建完成之后 vscode的左侧会出现如下图所示的界面，数字`1`对应的按钮后续用于代码调试，数字`2`对应的按钮后续用于项目代码的编译构建。此时意味着环境搭建已经完成，下一小节会详细介绍框架的使用方法。
+待同学们使用 dev containers 构建完成之后，就意味着实验相关的所有 linux  系统应用软件以及 vscode 插件都已经安装完成了。在下一小节中我们将会详细介绍如何使用实验框架。
 
 ![showlog](../images/envok.png)
 
