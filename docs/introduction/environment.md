@@ -25,13 +25,48 @@ wsl --install
 
 ![WSL安装示意](../images/vscodeplugin.png)
 
-在同学们安装好 dev containers 之后，请将我们的实验代码仓库fork到自己的的github账户下，然后点击左下角的齿轮打开command palette
+在同学们安装好 dev containers 之后，请打开[实验 github 仓库页面](https://github.com/yhgu2000/SYsU-lang)，点击 `fork` 按钮，
+
+![fork 按钮1](../images/fork1.jpg)
+
+然后同学们会看到出现以下界面，大家可以取一个自己喜欢的仓库名字，然后点击`create fork`
+
+![fork 按钮2](../images/fork2.jpg)
+
+出现如下界面则意味着同学们已经完成仓库 `fork`
+
+![fork 按钮3](../images/fork3.jpg)
+
+在同学们完成实验仓库的fork之后，请回到 vscode 点击左下角的红色数字 1 所指的齿轮，然后再点击红色数字 2 所指的按钮打开command palette
 
 ![dev安装示意](../images/devcon1.png)
 
-然后点击红色所示的按钮，vscode便会提示同学们登录自己的github账号，然后选择前面我们fork到自己账号下的的实验代码仓库，vscode便会自动开始实验环境的搭建与配置。
+此时在vscode的顶部居中位置会出现如下图所示的内容，请同学们在出现的搜索栏中输入`Dev containers`关键词，然后大家需要点击下图红色三角形所示的按钮`Dev containers: Clone repository in container volume`。
 
 ![dev安装示意2](../images/devcon2.png)
+
+在这个时候vscode会出现下图所示的窗口提示同学们登录自己的github账号，请同学们点击下图中所示的`github`按钮
+
+![github 登录示意](../images/githublog.png)
+
+接着会出现如下图所示的窗口要求同学们确认是否同意该插件使用 github 账号进行登录，请同学们点击确认。
+
+![github 登录确认](../images/githublogconfirm.png)
+
+如果同学们的浏览器保存了 github 的登录信息，那么会出现下图所示的一个会话窗口，请同学们点击打开 vscode 即可。（如果同学们的浏览器没有保存 github 登录信息，需要多一个输入 github 账号密码进行登录的步骤）
+
+![github 登录确认](../images/githublogweb.png)
+
+
+成功授权 github 登录信息之后，同学们的电脑会回到 vscode 的窗口，弹出如下所示窗口。
+
+![github 仓库选择](../images/githubrepselect.png)
+
+然后选择前面我们fork到自己账号下的的实验代码仓库，选择主分支，vscode便会自动开始实验环境的搭建与配置。
+
+![github 登录授权](../images/githublog.png)
+
+
 
 并在点击右下角的show log即可观察环境配置进度
 
