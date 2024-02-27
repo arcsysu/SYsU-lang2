@@ -12,18 +12,7 @@
 ![showlog](../images/howtoreopendev.jpg)
 
 
-## 如何编译构建项目
-请同学们首先点击左侧插件菜单栏中的CMAKE按钮进入到如下图所示的界面，然后请同学们点击`Delete Cache and Reconfigure`这个按钮进行项目代码的构建。
 
-![showlog](../images/howtobu.png)
-
-此时vscode会弹出如下窗口要求你对编译此项目的编译器进行选择，请大家选择我们提前安装好的Clang即可。
-
-![showlog](../images/clang.png)
-
-如果最终在output一栏中显示`XX done`即可认为同学们已经成功完成了项目构建。
-
-![showlog](../images/outputdis.png)
 
 
 
