@@ -50,7 +50,7 @@ wsl -d Ubuntu --install         # 安装 Ubuntu 系统
 
 ![dev安装示意](../images/devcon1.png)
 
-此时在vscode的顶部居中位置会出现如下图所示的内容，请同学们在出现的搜索栏中输入`Dev containers`关键词，然后大家需要点击下图红色三角形所示的按钮`Dev containers: Clone repository in container volume`。
+此时在vscode的顶部居中位置会出现如下图所示的内容，请同学们在出现的搜索栏中输入`Dev Containers`关键词，然后大家需要点击下图红色三角形所示的按钮`Dev Containers: Clone Repository in Container Volume`。
 
 ![dev安装示意2](../images/devcon2.png)
 
@@ -76,6 +76,10 @@ wsl -d Ubuntu --install         # 安装 Ubuntu 系统
 ![showlog](../images/showlog.png)
 
 待同学们使用 dev containers 构建完成之后，就意味着实验相关的所有 linux  系统应用软件以及 vscode 插件都已经安装完成了。在下一小节中我们将会详细介绍如何使用实验框架。
+
+## 注意事项
+
+同学们在配置Dev Container环境时，请勿在Windows/Mac Terminal环境下直接克隆仓库或使用网站下载仓库代码，并在VS Code中选择`Dev Containers: Reopen in Container`选项进行搭建。这种做法会导致Dev Container和代码文件处于不同的操作系统中，在执行命令时产生巨大的性能开销。搭建Dev Container环境时建议使用如上文所述的`Dev Containers: Clone Repository in Container Volume`选项，让VS Code帮助我们自动下载仓库代码并安装容器。
 
 <!-- ![showlog](../images/envok.png) -->
 
