@@ -1,6 +1,5 @@
 <!-- _sidebar.md -->
 * 前言
-  * [实验总体介绍](introduction/overall.md)
   * [环境配置](introduction/environment.md)
   * [实验框架使用方法](introduction/howtouse.md) 
   * [帮助我们改进文档](introduction/helptoimprove.md)
