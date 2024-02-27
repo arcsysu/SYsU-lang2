@@ -56,6 +56,12 @@ wsl -d Ubuntu --install         # 安装 Ubuntu 系统
 
 ![dev安装示意2](../images/devcon2.jpg)
 
+然后需要同学们在如下所示的界面输入实验仓库地址 `https://github.com/arcsysu/SYsU-lang2`，并且点击`clone git repository form URL`按钮。
+
+
+![dev安装示意2](../images/newpull.png)
+
+
 <!-- 在这个时候 vscode 会出现下图所示的窗口提示同学们登录自己的 github 账号，请同学们点击下图中所示的`github`按钮
 
 ![github 登录示意](../images/githublog.png)
