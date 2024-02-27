@@ -29,7 +29,7 @@
 [build] Build finished with exit code 0
 ```
 
-## 2. 构建 `task0-score`，并且在输出中看本次任务的成绩
+## 2. 构建 `task0-score`
 请同学们按照下图所指引完成`task0-score`的构建，获得 task0 的实验成绩，
 
 ![howtoscore](../images/task0_score.jpg)
@@ -49,7 +49,7 @@
 [build] Build finished with exit code 0
 ```
 
-## 3. 构建 `task0-pack`，方便后续提交作业提交至评测服务器。
+## 3. 构建 `task0-pack`
 
 ![howtopack](../images/task0_pack.jpg)
 
