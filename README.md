@@ -29,7 +29,7 @@
 
 ## 安装
 
-我们提供了开箱即用的标准化开发容器，[这篇文章](https://zwshan.github.io/SYsU-lang-doc/#/introduction/environment)介绍了如何在你的电脑上拉取并使用它。如果同学们可以使用 GitHub Codespaces，一种简单且快速的体验方式是直接点击仓库右上角的 `Code` 来一键式地创建 Codespace，只需经过一段时间的等待就可以直接使用。
+我们提供了开箱即用的标准化开发容器，[这篇文章](https://arcsysu.github.io/SYsU-lang2/#/introduction/environment)介绍了如何在你的电脑上拉取并使用它。如果同学们可以使用 GitHub Codespaces，一种简单且快速的体验方式是直接点击仓库右上角的 `Code` 来一键式地创建 Codespace，只需经过一段时间的等待就可以直接使用。
 
 如果你不想使用容器而是想直接在自己的 Linux 环境中使用本框架，请使用以下 bash 命令：
 
@@ -57,7 +57,7 @@ cd ../llvm && bash install.sh
 
 通过这个文件，你可以选择实验一和实验二的完成方式：是使用 bison+flex 还是 antlr，相应地，你的程序也会在我们评测时使用相应的方式运行。
 
-除此之外，你还可以通过它配置第一个之后的每个实验是否“复活”。所谓“复活”，是指将程序的输入由源代码的内容改为前一个实验的标准答案。由于本实验是线性、渐进的，如果你在前一个实验中“挂了”或是做得不够好，那么就可以选择“复活”来同步进度，从而继续后面的实验。
+除此之外，你还可以通过它配置第一个之后的每个实验是否“复活”。所谓“复活”，是指将程序的输入由测例源代码改为前一个实验的标准答案。由于本实验是线性、渐进的，如果你在前一个实验中“挂了”或是做得不够好，那么就可以选择“复活”来同步进度，从而继续后面的实验。
 
 > 复活机制默认关闭，启用复活需要让预置的示例代码适配变化后的输入，我们会尽快在将来的更新中给出适配代码。
 
@@ -65,4 +65,4 @@ cd ../llvm && bash install.sh
 
 现在，你已经准备好了，请按照每个任务的具体要求，开始你的编译器实验之旅吧！
 
-你可以在这里找到更多的参考文档：[https://zwshan.github.io/SYsU-lang-doc](https://zwshan.github.io/SYsU-lang-doc)。
+你可以在仓库的 GitHub Pages 找到更多的参考资料：[https://arcsysu.github.io/SYsU-lang2](https://arcsysu.github.io/SYsU-lang2)。
