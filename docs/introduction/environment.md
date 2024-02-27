@@ -77,7 +77,7 @@ wsl -d Ubuntu --install         # 安装 Ubuntu 系统
 
 待同学们使用 dev containers 构建完成之后，就意味着实验相关的所有 linux  系统应用软件以及 vscode 插件都已经安装完成了。在下一小节中我们将会详细介绍如何使用实验框架。
 
-## 注意事项
+### 注意事项
 
 1. 在配置Dev Container环境时，请勿在Windows/Mac Terminal环境下直接克隆仓库或使用网站下载仓库代码，并在 vscode 中选择`Dev Containers: Reopen in Container`选项进行搭建。这种做法会导致Dev Container和代码文件处于不同的操作系统中，在执行命令时产生巨大的性能开销。搭建Dev Container环境时建议使用如上文所述的`Dev Containers: Clone Repository in Container Volume`选项，让 vscode 帮助我们自动下载仓库代码并安装容器。
 2. 在搭建Dev Container时若出现网络问题，请检查本机（包括WSL2）代理是否开启以及git代理是否配置，并尝试在打开/关闭代理后重新搭建。
