@@ -4,14 +4,23 @@
 
 
 ## 软件安装
-由于大部分同学都是使用 `Windows` 电脑进行开发，所以这里采用windows11系统进行演示。首先需要同学们下载并安装以下三种软件。由于 `Windows` 系统下 `docker` 的正常使用需要 `wsl` 环境，所以请同学们在安装 `docker` 之前先安装 `wsl`。(对于 `linux` 系统和  `mac` 系统的同学而言，只需要跳过 `wsl` 的安装即可)
+由于大部分同学都是使用 `Windows` 电脑进行开发，所以这里采用windows11系统进行演示。首先需要同学们下载并安装以下三种软件。由于 `Windows` 系统下 `docker` 的正常使用需要 `wsl` 环境，所以请同学们在安装 `docker` 之前先安装 `wsl`。(对于 `linux` 系统和  `mac` 系统的同学而言，只需要跳过 `wsl` 的安装即可)。
+
+需要安装的软件如下：
+
 - wsl
 - docker
 - vscode
 
-首先是WSL，WSL是Windows Subsystem for Linux的简称，它是微软在Windows操作系统上提供的一个功能，允许用户在Windows环境下运行Linux应用程序和命令行工具。简单来说，它让你可以在Windows系统中享受到Linux的强大功能。首先同学们需要打开自己的终端命令行，在其中输入以下代码，等待其安装即可。
-```
-wsl --install
+首先是WSL，WSL是Windows Subsystem for Linux的简称，它是微软在Windows操作系统上提供的一个功能，允许用户在Windows环境下运行Linux应用程序和命令行工具。简单来说，它让你可以在Windows系统中享受到Linux的强大功能。首先同学们需要打开 `控制面板-程序-启动或关闭 Windows 功能`，开启`容器`、`适用于 Linux 的 Windows 子系统`、`虚拟机平台`三个功能。
+![Windows系统功能开启](../images/systemconfigure.png)
+
+
+同学们需要打开自己的终端命令行，在其中输入以下代码，等待其安装即可。
+```shell
+wsl -l -v                       # 列举所有可安装的 Linux 系统
+wsl --set-default-version 2     # 设置 WSL 默认版本号为2
+wsl -d Ubuntu --install         # 安装 Ubuntu 系统
 ```
 ![WSL安装示意](../images/wsl1.png)
 
