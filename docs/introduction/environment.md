@@ -25,9 +25,9 @@ wsl -d Ubuntu --install         # 安装 Ubuntu 系统
 ![WSL安装示意](../images/wsl1.png)
 
 然后是 docker 的安装，Docker 可以将代码、运行所需的运行时、系统工具和库进行打包。这可以使得同学进行实验代码开发的环境和我们助教开发实验时一模一样，减少了同学们环境配置的繁琐操作。
-同学们直接在[以下网站](https://www.docker.com/products/docker-desktop/)下载，并进行图形界面的安装即可.
+同学们直接在[官方网站](https://www.docker.com/products/docker-desktop/)下载，并进行图形界面的安装即可.
 
-最后是vscode的安装，vscode是一款可以安装多种强大插件的开源代码编辑器，如果同学们选择vscode作为本次实验的代码编辑器，助教提前设计好的工作流将大幅提升你的开发效率。如果同学们选择其他代码编辑器将不能享受到这样的福利。vscode直接在[以下网站](https://code.visualstudio.com/)下载，并进行图形界面的安装即可.
+最后是vscode的安装，vscode是一款可以安装多种强大插件的开源代码编辑器，如果同学们选择vscode作为本次实验的代码编辑器，助教提前设计好的工作流将大幅提升你的开发效率。如果同学们选择其他代码编辑器将不能享受到这样的福利。vscode直接在[官方网站](https://code.visualstudio.com/)下载，并进行图形界面的安装即可.
 
 ## (可选方案 1)dev containers 自动配置
 同学们打开vscode之后需要点击下图红色三角形所示的按钮，进入到插件管理界面进行dev containers插件的安装。
@@ -88,15 +88,19 @@ wsl -d Ubuntu --install         # 安装 Ubuntu 系统
 
 ![新建命令行窗口](../images/openterminal.png)
 
-然后在下图所示位置输入如下命令中的一条查看 docker 服务状态或者启动 docker 服务
+如果同学们使用的是 windows 系统，在这里需要输入以下命令进入 wsl，如果使用的是 mac 系统或者是 Linux 系统可以直接进行后续步骤。
+
+```bash
+wsl
+```
+
+为避免软件版本冲突以及影响同学们的系统环境，推荐同学们在 docker 内进行本实验环境配置。所以需要同学们在下图所示位置输入如下命令中的一条查看 docker 服务状态或者启动 docker 服务
 ```bash
 systemctl status docker  #查看 docker 状态
 systemctl start docker   #启动 docker 服务
 ```
 
-（待施工）这里如果使用的是 Windows 系统得加一张进入 wsl 的截图。
-
-![新建命令行窗口](../images/checkdocker.jpg)
+![确认 docker 服务成功启动](../images/checkdocker.jpg)
 
 如果确认 docker 已经是运行状态则可以进行下一步操作。在命令行窗口输入以下命令进行ubuntu 镜像的拉取。
 ```
@@ -109,7 +113,7 @@ docker pull ubuntu:22.04
 接下来我们需要将拉取下来的 ubuntu 镜像实例化为一个容器，并在容器内进行实验环境的配置。但是在将镜像实例化为容器之前，我们需要将实验远程仓库拉取到本地。请同学们直接在命令行输入以下命令，以下代码中的`https://mirror.ghproxy.com/`是一个github 代理，方便解决可能存在的 github 访问不稳定问题。当命令行显示如下`100%  xx done`字样时代表仓库拉取已经完成。此时在命令行输入 `ls` 命令可以看到`SYsU-lang`实验代码文件夹。  
 
 ```bash
-git clone https://mirror.ghproxy.com/https://github.com/yhgu2000/SYsU-lang.git
+git clone https://mirror.ghproxy.com/https://github.com/arcsysu/SYsU-lang2
 ```
 ![仓库拉取示意](../images/gitrepclone.jpg)
 
@@ -144,7 +148,7 @@ docker run -it --name labdemo -v /home/zwshan/SYsU-lang:/workspace   ubuntu:22.0
 
 ![文件资源管理器的图形界面](../images/docgui.jpg)
  
-成功进入容器之后同学们需要在容器内进行实验环境的搭建，安装一些实验必需的应用软件。首先需要同学们输入以下命令安装`ninja-build`以及`clang-14`。
+成功进入容器之后同学们需要在容器内进行实验环境的搭建，安装一些实验必需的应用软件。首先需要同学们输入以下命令安装以下软件：
 ```bash
 apt-get update # 更新软件包列表信息
 apt-get install ninja-build # 一个用于加速软件编译速度的软件
@@ -175,7 +179,7 @@ bash install.sh
 
 <!-- ![antlr成功安装图片（图片待施工，开发机网络崩溃）](../images/) -->
 
-在以下 linux 系统软件安装完成之后，我们还需要安装一系列 vscode 插件，以便更方便地进行实验代码的编写。请同学们按照以下同学所示的方法，打开 vscode 的插件安装界面：
+在以下 linux 系统软件安装完成之后，我们还需要安装一系列 vscode 插件，以便更方便地进行实验代码的编写。请同学们按照以下同学所示的方法，打开 vscode 的插件安装界面。
 
 ![打开文件夹界面](../images/plugindemo.jpg)
 
@@ -188,4 +192,4 @@ CMake Tools
 ANTLR4 grammar syntax support
 Yash
 ```
-
+当前面所提到的 linux 系统软件以及 vscode 插件全部安装完成后，就完成了手动配置实验环境。
