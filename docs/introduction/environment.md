@@ -34,7 +34,14 @@ wsl -d Ubuntu --install         # 安装 Ubuntu 系统
 
 ![WSL安装示意](../images/vscodeplugin.png)
 
-在同学们安装好 dev containers 之后，请点击 vscode 左下角的红色箭头所指的齿轮，然后再点击另外红色箭头所指的按钮打开command palette
+在同学们安装好 dev containers 之后，请通过以下代码检查 docker 服务是否处于启动状态或者启动 docker 服务，如果显示类似如下图片中`active(running)`，则表示 docker 服务已经启动。
+```bash
+systemctl status docker  #查看 docker 状态
+systemctl start docker   #启动 docker 服务
+```
+![确认 docker 服务成功启动](../images/checkdocker.jpg)
+
+确保 docker 服务处于启动状态后，请点击 vscode 左下角的红色箭头所指的齿轮，然后再点击另外红色箭头所指的按钮打开command palette
 
 <!-- 请打开[实验 github 仓库页面](https://github.com/yhgu2000/SYsU-lang)，点击 `fork` 按钮，
 
