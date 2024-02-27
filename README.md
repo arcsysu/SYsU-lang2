@@ -39,7 +39,7 @@ sudo apt-get update
 sudo apt-get install -y build-essential git cmake ninja-build default-jdk \
   python3 bison flex
 # 克隆仓库
-git clone https://github.com/Nickchen-PUSH/SYsU-lang2.git -b master --single-branch --depth 1
+git clone https://github.com/arcsysu/SYsU-lang2.git -b master --single-branch --depth 1
 # 进入仓库
 cd SYsU-lang
 # 安装 antlr 与 llvm
