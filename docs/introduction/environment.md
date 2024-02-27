@@ -34,7 +34,9 @@ wsl -d Ubuntu --install         # 安装 Ubuntu 系统
 
 ![WSL安装示意](../images/vscodeplugin.png)
 
-在同学们安装好 dev containers 之后，请打开[实验 github 仓库页面](https://github.com/yhgu2000/SYsU-lang)，点击 `fork` 按钮，
+在同学们安装好 dev containers 之后，请点击 vscode 左下角的红色箭头所指的齿轮，然后再点击另外红色箭头所指的按钮打开command palette
+
+<!-- 请打开[实验 github 仓库页面](https://github.com/yhgu2000/SYsU-lang)，点击 `fork` 按钮，
 
 ![fork 按钮1](../images/fork1.jpg)
 
@@ -44,17 +46,17 @@ wsl -d Ubuntu --install         # 安装 Ubuntu 系统
 
 出现如下界面则意味着同学们已经完成仓库 `fork`
 
-![fork 按钮3](../images/fork3.jpg)
+![fork 按钮3](../images/fork3.jpg) -->
 
-在同学们完成实验仓库的fork之后，请回到 vscode 点击左下角的红色数字 1 所指的齿轮，然后再点击红色数字 2 所指的按钮打开command palette
 
-![dev安装示意](../images/devcon1.png)
+
+![dev安装示意](../images/devcon1.jpg)
 
 此时在vscode的顶部居中位置会出现如下图所示的内容，请同学们在出现的搜索栏中输入`Dev Containers`关键词，然后大家需要点击下图红色三角形所示的按钮`Dev Containers: Clone Repository in Container Volume`。
 
-![dev安装示意2](../images/devcon2.png)
+![dev安装示意2](../images/devcon2.jpg)
 
-在这个时候 vscode 会出现下图所示的窗口提示同学们登录自己的 github 账号，请同学们点击下图中所示的`github`按钮
+<!-- 在这个时候 vscode 会出现下图所示的窗口提示同学们登录自己的 github 账号，请同学们点击下图中所示的`github`按钮
 
 ![github 登录示意](../images/githublog.png)
 
@@ -69,13 +71,19 @@ wsl -d Ubuntu --install         # 安装 Ubuntu 系统
 
 成功授权 github 登录信息之后，同学们的电脑会回到 vscode 的界面，弹出如下所示窗口。请同学们选择前面我们 fork 到自己账号下的的实验代码仓库，选择主分支。
 
-![github 仓库选择](../images/githubrepselect.png)
+![github 仓库选择](../images/githubrepselect.png) -->
 
-此时 vscode 便会自动开始实验环境的搭建与配置。点击右下角的 show log 即可观察环境配置进度
+此时 vscode 便会自动开始实验环境的搭建与配置。点击右下角的 show log 即可观察环境配置进度,
 
-![showlog](../images/showlog.png)
+![showlog](../images/showlog.jpg)
 
-待同学们使用 dev containers 构建完成之后，就意味着实验相关的所有 linux  系统应用软件以及 vscode 插件都已经安装完成了。在下一小节中我们将会详细介绍如何使用实验框架。
+待同学们观察到上图所示的进度条达到100%或者消失，并且出现如下图所示的界面。使用 dev containers 进行自动构建的环境的操作就完成了。
+
+![showok1](../images/showok1.jpg)
+
+如果顺利地话，vscode 的顶部还会弹出如图所示的窗口来提示同学们选择项目所示的编译器，请同学们选择箭头所示的clang14即可。
+
+![showok2](../images/showok2.jpg)
 
 ### 注意事项
 
