@@ -7,8 +7,6 @@
 在上一小节环境构造时，不管同学们采用的是 `dev containers` 自动构建的方法还是手动构建的方法，打开项目的方式都是一样的。同学们首先需要点击下图中左侧箭头所示的像一台电脑一样的按钮 `remote explorer`（一个 vscode 插件，需手动安装） ，然后点击`REMOTE EXPLORER`**后**的选择框，按下向下的类三角形按钮，选择红色箭头所示的`Dev Containers`选项，之后同学们便会在下图所示的界面，将鼠标放到 `SYsU-lang2`（如果是手动配置的环境，容器名称可能不同）的位置，点击鼠标右键，再点击`Open Container in xx Window`，即可成功打开我们的实验项目环境。
 
 
-
-
 ![showlog](../images/howtoreopendev.jpg)
 
 
@@ -62,15 +60,23 @@ set(TASK4_REVIVE OFF)
 
 
 ## 如何调试代码
-前面提到了同学们可以通过肉眼比对自己的输出和标准输出来进行debug，但也可能会存在肉眼比对找不到bug的情况。由于助教在设计实验的过程中已经把调试配置文件编写完成，所以同学们可以直接进行图形界面的调试。
+在这里首先介绍如何通过肉眼比对的方式来进行 debug，在上一小节中我们介绍了如何获得当前正在做的实验的标准答案，通过对比某个测试样例下标准答案和自己的输出的 debug 方式就是肉眼比对 debug 。以`000_main.sysu.c`这个测试样例为例子，同学们可以在
+`/workspaces/SYsU-lang2/build/test/task1/functional-0/`找到`000_main.sysu.c`这个文件夹，查看文件夹中的内容可以发现存在以下三个文件夹，通过查看以下三个文件夹中的内容即可进行 debug 。
+```
+|-- answer.txt
+|-- output.txt
+`-- score.txt
+```
+
+在某些情况下可能会存在肉眼 debug 无法找到错误的情况，由于助教在设计实验的过程中已经把调试配置文件编写完成，所以同学们可以直接进行图形界面的调试。
 我以实验一的flex版本实现为例进行介绍。首先我在`main.cpp`如图所示位置打了断点。
 
 ![showlog](../images/maindebug.png)
 
-然后在`PROJECT STATUS`处将`DEBUG`配置为`task1`
+然后在`PROJECT STATUS`处将`Debug`和`Build`配置为`task1`
 
-![showlog](../images/debugtest1.png)
+![showlog](../images/debugtest11.jpg)
 
-然后点击左侧插件菜单栏中的量杯按钮`TESTING`。这里假设我实验一的第一个测试样例就没能正常通过，点击如下图所示的debug按钮即可进入调试的图形界面。
+然后点击左侧插件菜单栏中的量杯按钮`TESTING`。在对应测试样例的后面点击如下图所示的debug按钮即可进入调试的图形界面。
 
-![showlog](../images/debuganniu.png)
+![showlog](../images/debugtest22.jpg)
