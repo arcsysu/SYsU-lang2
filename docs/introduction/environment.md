@@ -155,24 +155,11 @@ docker pull ubuntu:22.04
 
 ![镜像拉取完成](../images/ubuntuimage.jpg)
 
-我们需要将拉取下来的 ubuntu 镜像实例化为一个容器，并在容器内进行实验环境的配置。但是在将镜像实例化为容器之前，
+之后，我们需要将拉取下来的 ubuntu 镜像实例化为一个容器，并在容器内进行实验环境的配置。  
 在我此时的例子中，我的代码文件所在文件夹为`/Users/nickchen/SYsU-lang2`。有了这个文件路径之后就可以开始将前面拉取的镜像实例化为一个容器了。请大家在命令行输入如下命令  
 注意⚠️：将里面的`/Users/nickchen/SYsU-lang2`改为你先前设置的仓库的路径（即上文`pwd`命令得到的路径）
 ```bash
-git clone https://mirror.ghproxy.com/https://github.com/arcsysu/SYsU-lang2
-```
-![仓库拉取示意](../images/gitrepclone.jpg)
-
-请同学们输入以下代码进入实验代码文件夹，并且进行实验代码文件夹路径的输出查看。
-```bash
-cd SYsU-lang  #进入文件夹
-pwd           #查看当前路径
-```
-![仓库拉取示意](../images/getloc.jpg)
-
-在我此时的例子中，我的代码文件所在文件夹为`/home/zwshan/SYsU-lang`。有了这个文件路径之后就可以开始将前面拉取的镜像实例化为一个容器了。请大家在命令行输入如下命令，
-```bash
-docker run -it --name labdemo -v /home/zwshan/SYsU-lang:/workspace   ubuntu:22.04
+docker run -it --name labdemo -v /Users/nickchen/SYsU-lang2:/workspace   ubuntu:22.04
 # docker run是运行 Docker 容器的命令
 # -it 是两个选项的结合。-i 表示交互式操作，允许用户与容器进行交互，-t 表示分配一个伪终端（pseudo-TTY）。这使得用户可以在容器内执行命令，并且能够与命令行进行交互。
 # --name labdemo表示将运行的容器命名为 labdemo
