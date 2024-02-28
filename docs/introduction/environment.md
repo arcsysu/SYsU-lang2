@@ -74,8 +74,11 @@ systemctl status docker  #查看 docker 状态
 systemctl start docker   #启动 docker 服务
 ```
 ![确认 docker 服务成功启动](../images/checkdocker.jpg)
+
 你也可以通过docker的图形化界面来确认docker服务的启动状态
+
 ![确认 docker 服务成功启动(gui)](../images/dockergui.png)
+
 确保 docker 服务处于启动状态后，请点击 vscode 左下角的红色箭头所指的齿轮，然后再点击另外红色箭头所指的按钮打开command palette
 
 ![确认 Docker 服务成功启动](../images/checkdocker.jpg)
@@ -311,6 +314,8 @@ cmake --build build --target install
 2. 在Docker Desktop中为你的容器增加Memory limit/Swap，并重新编译
 
 ![alt text](../images/docker_setting.png)
+
+
 
 在以上 linux 系统软件安装完成之后，我们还需要安装一系列 vscode 插件，以便更方便地进行实验代码的编写。请同学们按照以下同学所示的方法，打开 vscode 的插件安装界面。
 
