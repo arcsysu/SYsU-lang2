@@ -172,22 +172,20 @@ docker run -it --name labdemo -v /Users/nickchen/SYsU-lang2:/workspace   ubuntu:
 在成功进入 `docker` 容器之后同学们需要在容器内进行实验环境的搭建，安装一些实验必需的应用软件。首先需要同学们输入以下命令安装以下软件：
 ```bash
 apt-get update # 更新软件包列表信息
-apt-get install -y ninja-build clang-14 wget cmake xz-utils g++ lld flex bison # 下载软件
+apt-get install -y ninja-build clang-14 wget cmake xz-utils unzip g++ lld flex bison # 下载软件
+
+#以下是上述软件的简要介绍   
+# ninja-build    一个用于加速软件编译速度的软件   
+# clang-14       安装实验必需的一个编译器   
+# wget           一个Linux 系统下的下载软件，类似迅雷在 win 的地位   
+# cmake          一个开源的跨平台的构建工具，用于自动生成各种不同编译环境下的构建脚本，帮助管理和构建 C/C++ 项目。   
+# xz-utils       一个解压软件   
+# unzip          正如其名   
+# g++            实验必需的编译器   
+# lld            实验必需的链接器   
+# flex           词法分析器构造工具   
+# bison          文法分析器构造工具   
 ```
-以下是上述软件的简要介绍
-|  软件   | 简介  |
-|  ----  | ----  |
-| ninja-build  | 一个用于加速软件编译速度的软件 |
-| clang-14  | 安装实验必需的一个编译器 |
-| wget  | 一个Linux 系统下的下载软件，类似迅雷在 win 的地位 |
-| cmake  | 一个开源的跨平台的构建工具，用于自动生成各种不同编译环境下的构建脚本，帮助管理和构建 C/C++ 项目。 |
-| xz-utils  | 一个解压软件 |
-| unzip | 正如其名 |
-| g++  | 实验必需的编译器 |
-| lld  | 实验必需的链接器 |
-| flex    | 词法分析器构造工具 |
-| bison   | 文法分析器构造工具 |
-    
 
 在上述软件成功安装之后，请大家输入以下命令进行另外两个特殊软件的安装,两种软件在对应文件夹下都有助教提前写好的自动化编译安装脚本。  
 
@@ -200,14 +198,12 @@ cd /workspace/llvm && bash install.sh
 
 ![alt text](../images/llvm_success.png)
 
-
 接下来是 antlr 软件的安装，请大家在命令行输入如下命令。
 ```bash
 cd /workspace/antlr && bash install.sh
 ```
 成功编译安装后的界面如下图所示(也就是无事发生)
 ![alt text](../images/antlr_success.png)
-
 
 注意⚠️：因为编译是计算密集型任务，此步骤耗时可能较长，如果你不能成功编译，你可以尝试以下的方法：
 1. 重新编译  
