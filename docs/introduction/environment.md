@@ -9,34 +9,66 @@
 需要安装的软件如下：
 
 - WSL2
-- docker
 - git
-- vscode
+- Docker（可选）
+- VSCode
 
-首先是WSL，WSL是Windows Subsystem for Linux的简称，它是微软在Windows操作系统上提供的一个功能，允许用户在Windows环境下运行Linux应用程序和命令行工具。简单来说，它让你可以在Windows系统中享受到Linux的强大功能。首先同学们需要打开 `控制面板-程序-启动或关闭 Windows 功能`，开启`容器`（Windows11特有）、`适用于 Linux 的 Windows 子系统`、`虚拟机平台`三个功能。
+### WSL2 安装
+
+WSL 是 Windows Subsystem for Linux 的简称，它是微软在 Windows 操作系统上提供的一个功能，允许用户在 Windows 环境下运行 Linux 应用程序和命令行工具。简单来说，它让你可以在 Windows 系统中享受到 Linux 的强大功能。这里我们需要安装 WSL2，由于 WSL1 与 WSL2 采用不同架构，如果使用 WSL1，Docker 引擎将无法在 WSL 内运行。
+
+首先同学们需要打开 `控制面板〉程序〉启动或关闭 Windows 功能`，开启 `容器`（Windows 11 特有）、`适用于 Linux 的 Windows 子系统`、`虚拟机平台` 这三个功能。
+
 ![Windows系统功能开启](../images/systemconfigure.png)
 
 
-同学们需要打开自己的终端命令行，在其中输入以下代码，等待其安装即可。已安装 WSL 的同学请检查安装的 WSL 版本是否为2，使用 WSL1 的同学需自行将版本升级，或创建一个新的 WSL2 系统。
+接著用**管理员权限**打开终端命令行，在其中输入以下代码，等待其安装即可。已安装 WSL 的同学请检查安装的 WSL 版本是否为2，使用 WSL1 的同学需自行将版本升级，或创建一个新的 WSL2 系统。
+
 ```shell
 wsl -l -v                       # 列举所有已安装的 Linux 系统
 wsl --set-default-version 2     # 设置 WSL 默认版本号为2
 wsl -d Ubuntu --install         # 安装 Ubuntu 系统
 ```
+
 ![WSL安装示意](../images/wsl1.png)
 
-然后是 docker 的安装（注意 Windows 系统上 docker 安装的前置条件是 WSL2 已经安装好），Docker 可以将代码、运行所需的运行时、系统工具和库进行打包。这可以使得同学进行实验代码开发的环境和我们助教开发实验时一模一样，减少了同学们环境配置的繁琐操作。同学们直接在[官方网站](https://www.docker.com/products/docker-desktop/)下载，并进行图形界面的安装即可。
+打开 Windows 终端机，在页签的右边有个下拉选单，点击后会出现刚才安装的 Ubuntu 系统，再点击就会在 WSL2 开启终端了。
+
+![启动 WSL2 的 Ubuntu 系统](../images/windows-terminal.png)
+
+### git 安装
 
 其次是 git 的安装，git 是一个开源的分布式版本控制系统，用于有效地处理从小到大的项目版本管理。同学们直接在[官方网站](https://git-scm.com/downloads)下载，并进行图形界面的安装即可。
 
-最后是 vscode 的安装，vscode 是一款可以安装多种强大插件的开源代码编辑器，如果同学们选择 vscode 作为本次实验的代码编辑器，助教提前设计好的工作流将大幅提升你的开发效率。如果同学们选择其他代码编辑器将不能享受到这样的福利，需要自行探索相关功能。vscode 直接在[官方网站](https://code.visualstudio.com/)下载，并进行图形界面的安装即可。
+### Docker 安装
 
-## (可选方案 1)dev containers 自动配置
-同学们打开vscode之后需要点击下图红色三角形所示的按钮，进入到插件管理界面进行dev containers插件的安装。
+Docker 可以将代码、运行所需的运行时、系统工具和库进行打包成镜像。助教们已经将实验所需的开发环境打包成镜像，这可以使得同学进行实验代码开发的环境和我们助教开发实验时保持一致，减少了同学们环境配置的繁琐操作。**如果同学们使用[可选方案 1](#可选方案-1-⸺-dev-containers-自动配置需安装-docker)进行环境配置，就必须安装 Docker 才能启用 Dev Containers 功能。**
 
-![WSL安装示意](../images/vscodeplugin.png)
+在 Windows 有两种 Docker 安装方式，第一种是直接在 [Docker 官网](https://www.docker.com/products/docker-desktop/)下载 Docker Desktop，并进行图形界面的安装即可；第二种是在 WSL2 中的 Ubuntu 安装 Docker 引擎，同学们可以在命令行输入下面命令安装，或是参阅 [Docker 官方文档](https://docs.docker.com/engine/install/ubuntu/)进行安装。
 
-在同学们安装好 dev containers 之后，请通过以下代码检查 docker 服务是否处于启动状态或者启动 docker 服务，如果显示类似如下图片中`active(running)`，则表示 docker 服务已经启动。
+```bash
+# 导入 Docker 官方仓库 GPG 密钥:
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# 添加 Docker 仓库到 Apt 源:
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+
+# 安装 Docker 
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+
+上面两种方式的区别在于 docker 命令的作用域不同，第一种方法可以直接在 Windows 命令行使用 `docker` 指令，第二种需要在 WSL2 命令行才能使用 `docker` 指令。
+
+在同学们安装好 Docker 之后，请通过以下命令检查 docker 服务是否处于启动状态或者启动 docker 服务，如果显示类似如下图片中`active(running)`，则表示 docker 服务已经启动。
+
 ```bash
 systemctl status docker  #查看 docker 状态
 systemctl start docker   #启动 docker 服务
@@ -45,6 +77,23 @@ systemctl start docker   #启动 docker 服务
 你也可以通过docker的图形化界面来确认docker服务的启动状态
 ![确认 docker 服务成功启动(gui)](../images/dockergui.png)
 确保 docker 服务处于启动状态后，请点击 vscode 左下角的红色箭头所指的齿轮，然后再点击另外红色箭头所指的按钮打开command palette
+
+![确认 Docker 服务成功启动](../images/checkdocker.jpg)
+
+### VSCode 安装
+
+最后是 VSCode 的安装，VSCode 是一款可以安装多种强大插件的开源代码编辑器，如果同学们选择 VSCode 作为本次实验的代码编辑器，助教提前设计好的工作流将大幅提升你的开发效率。如果同学们选择其他代码编辑器将不能享受到这样的福利。VSCode 直接在[官方网站](https://code.visualstudio.com/)下载，并进行图形界面的安装即可.
+
+
+## 可选方案 1 ⸺ Dev Containers 自动配置（需安装 Docker）
+
+此章节的步骤分为两种，取决于同学们前面[安装 Docker](#docker-安装) 的方式，如采用第一种方式安装Docker的同学，请继续往下看，如果是用第二种方式安装 Docker 的同学，请跳至[从 WSL2 启动 Dev Containers](#从-wsl2-启动-dev-containers) 继续操作。
+
+同学们打开 VSCode 之后需要点击下图红色三角形所示的按钮，进入到插件管理界面搜寻 `Dev Containers` 进行插件安装。
+
+![VSCode 插件安装](../images/vscodeplugin.png)
+
+请同学们确保 Docker 服务处于**启动状态**后，请点击 VSCode 左下角的红色箭头所指的齿轮，然后再点击另外红色箭头所指的按钮打开 Command Palette，或使用快捷键 `Ctrl+Shift+P` 叫出 Command Palette。
 
 <!-- 请打开[实验 github 仓库页面](https://github.com/yhgu2000/SYsU-lang)，点击 `fork` 按钮，
 
@@ -59,14 +108,13 @@ systemctl start docker   #启动 docker 服务
 ![fork 按钮3](../images/fork3.jpg) -->
 
 
-
 ![dev安装示意](../images/devcon1.jpg)
 
-此时在vscode的顶部居中位置会出现如下图所示的内容，请同学们在出现的搜索栏中输入`Dev Containers`关键词，然后大家需要点击下图红色三角形所示的按钮`Dev Containers: Clone Repository in Container Volume`。
+此时在 VSCode 的顶部居中位置会出现如下图所示的内容，请同学们在出现的搜索栏中输入 `Dev Containers` 关键词，然后大家需要点击下图红色三角形所示的按钮 `Dev Containers: Clone Repository in Container Volume`。
 
 ![dev安装示意2](../images/devcon2.jpg)
 
-然后需要同学们在如下所示的界面输入实验仓库地址 `https://github.com/arcsysu/SYsU-lang2`，并且点击`clone git repository form URL`按钮。
+然后需要同学们在如下所示的界面输入实验仓库地址 `https://github.com/arcsysu/SYsU-lang2`，并且点击 `Clone git repository form URL` 按钮。
 
 
 ![dev安装示意2](../images/newpull.png)
@@ -89,25 +137,60 @@ systemctl start docker   #启动 docker 服务
 
 ![github 仓库选择](../images/githubrepselect.png) -->
 
-此时 vscode 便会自动开始实验环境的搭建与配置。点击右下角的 show log 即可观察环境配置进度,
+此时 VSCode 便会自动开始实验环境的搭建与配置。点击右下角的 show log 即可观察环境配置进度,
 
 ![showlog](../images/showlog.jpg)
 
-待同学们观察到上图所示的进度条达到100%或者消失，并且出现如下图所示的界面。使用 dev containers 进行自动构建的环境的操作就完成了。
+待同学们观察到上图所示的进度条达到100%或者消失，并且出现如下图所示的界面。使用 Dev Containers 进行自动构建的环境的操作就完成了。
 
 ![showok1](../images/showok1.jpg)
 
-如果顺利地话，vscode 的顶部还会弹出如图所示的窗口来提示同学们选择项目所示的编译器，请同学们选择箭头所示的clang14即可。
+如果顺利地话，vscode 的顶部还会弹出如图所示的窗口来提示同学们选择项目所示的编译器，请同学们选择箭头所示的 clang14 即可。
 
 ![showok2](../images/showok2.jpg)
 
+### 从 WSL2 启动 Dev Containers
+
+同学们如果使用第二种方式安装 Docker，配置步骤会稍显不同。首先我们需要打开 Windows 终端机进入 WSL2 命令行界面。
+
+![启动 WSL2 的 Ubuntu 系统](../images/windows-terminal.png)
+
+在命令行中输入下面命令把实验仓库源码 clone 下来。
+
+```bash
+git clone git@github.com:arcsysu/SYsU-lang2.git
+```
+
+![clone 仓库](../images/wsl-git-clone.png)
+
+此时当前目录下会多一个 `SYsU-lang2` 目录，命令行输入 `code SYsU-lang2` 用 VSCode 开启该目录。
+
+![从 WSL 启动 VSCode](../images/start-code-from-wsl.png)
+
+如果先前在 WSL 环境中未安装过 Dev Container 插件，先到插件管理界面搜寻 Dev Containers 安装插件。
+
+![安装 Dev Containers 插件](../images/install-dev-container.png)
+
+如果已经安装 Dev Containers，用 VSCode 开启 `SYsU-lang2` 目录后右下角会显示 Dev Containers 的提示，点击 `Reopen in Container` 按钮会自动进行环境配置。
+
+![从 Dev Containers 启动镜像](../images/reopen-in-container.png)
+
+配置完成后，点击左侧 Remote Explorer 按钮进入 Remote Exploer 管理界面，下拉选单选择 `Dev Containers` 会出现刚才配置好的容器，点击中间的 `Open in Container in New Window` 就会开启配置好开发环境的 VSCode 工作区，同学们下次要进入工作区只需要在 WSL 开启 VSCode，从这个界面进入就行了。
+
+![配置好的 Container](../images/dev-container-success.png)
+
+点击左侧 CMake 图标，在 Configure 可以设置项目使用的编译器，请同学们选择 Clang 14。
+
+![编译器配置](../images/cmake-configuration.png)
+
 ### 注意事项
 
-1. 在配置 dev container 环境时，请勿在Windows/Mac Terminal环境下直接克隆仓库或使用网站下载仓库代码，并在 vscode 中选择`Dev Containers: Reopen in Container`选项进行搭建。这种做法会导致 dev container 和代码文件处于不同的操作系统中，在执行命令时产生巨大的性能开销。搭建 dev container 环境时建议使用如上文所述的`Dev Containers: Clone Repository in Container Volume`选项，让 vscode 帮助我们自动下载仓库代码并安装容器。
-2. 在搭建 dev container时若出现网络问题，请检查本机（包括WSL2）代理是否开启以及git代理是否配置，并尝试在打开/关闭代理后重新搭建。
+1. 在配置 Dev Containers 环境时，我们要避免在 Windows 环境下直接克隆仓库或使用网站下载仓库代码，然后直接在 VSCode 选择 `Dev Containers: Reopen in Container` 进行搭建。由于 Windows 文件系统性能不如 Linux 文件系统，这种做法会导致容器和代码文件处于不同的操作系统中，在执行命令时产生巨大的性能开销。建议使用上文所述的 `Dev Containers: Clone Repository in Container Volume` 选项，让 VSCode 帮助我们自动下载仓库代码并安装容器。
+2. 在搭建 Dev Containers 时若出现网络问题，请检查本机（包括WSL2）代理是否开启以及 git 代理是否配置，并尝试在打开/关闭代理后重新搭建。
 
 <!-- ![showlog](../images/envok.png) -->
-## (可选方案 2)命令行手动配置（使用docker）
+## 可选方案 2 ⸺ 命令行手动配置（使用 Docker）
+
 首先请同学们启动 vscode 软件，点击下图所示的按钮新建一个命令行窗口。
 
 ![新建命令行窗口](../images/openterminal.png)
@@ -207,8 +290,8 @@ cd /workspace/antlr && bash install.sh
 ![alt text](../images/antlr_success.png)
 
 注意⚠️：因为编译是计算密集型任务，此步骤耗时可能较长，如果你不能成功编译，你可以尝试以下的方法：
-1.重新编译  
-输入以下指令以重新编译  
+
+1. 重新编译，输入以下指令以重新编译  
 
 ```bash  
 cmake --build build --target clean
@@ -225,7 +308,7 @@ cmake --build build --target install
 ```
 
 
-2.在docker desktop中为你的容器增加Memory limit/Swap，并重新编译  
+2. 在docker desktop中为你的容器增加Memory limit/Swap，并重新编译  
 
 ![alt text](../images/docker_setting.png)
 
@@ -233,21 +316,19 @@ cmake --build build --target install
 
 ![打开插件界面](../images/plugindemo.jpg)
 
-需要安装的 vscode 插件名字列表如下
-
-```bash  
-C/C++
-C/C++ extension pack
-CMake
-CMake Tools
-ANTLR4 grammar syntax support
-Yash
-```
+需要安装的 vscode 插件名字列表如下：
+- C/C++
+- C/C++ extension pack
+- CMake
+- CMake Tools
+- ANTLR4 grammar syntax support
+- Yash
 
 你也可以打开筛选以快速找到这些插件  
+
 ![打开筛选](../images/WechatIMG1450.jpg)  
 
 当前面所提到的 linux 系统软件以及 vscode 插件全部安装完成后，就完成了手动配置实验环境。
 
-## (可选方案 3)命令行手动配置（不使用docker）  
+## 可选方案 3 ⸺ 命令行手动配置（不使用 Docker）  
 施工中👷……
