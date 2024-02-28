@@ -207,6 +207,7 @@ cd /workspace/antlr && bash install.sh
 
 注意⚠️：因为编译是计算密集型任务，此步骤耗时可能较长，如果你不能成功编译，你可以尝试以下的方法：
 1. 重新编译  
+输入以下指令以重新编译
 ```bash  
 cmake --build build --target clean
 cmake llvm -B build -G Ninja\
@@ -219,12 +220,13 @@ cmake llvm -B build -G Ninja\
   -DLLVM_INCLUDE_EXAMPLES=OFF \
   -DLLVM_INCLUDE_TESTS=OFF
 cmake --build build --target install
-```
-  
-2. 在docker desktop中为你的容器增加Memory limit/Swap，并重新编译  
-在以下 linux 系统软件安装完成之后，我们还需要安装一系列 vscode 插件，以便更方便地进行实验代码的编写。请同学们按照以下同学所示的方法，打开 vscode 的插件安装界面。
+```  
 
-![打开文件夹界面](../images/plugindemo.jpg)
+2. 在docker desktop中为你的容器增加Memory limit/Swap，并重新编译  
+
+在以上 linux 系统软件安装完成之后，我们还需要安装一系列 vscode 插件，以便更方便地进行实验代码的编写。请同学们按照以下同学所示的方法，打开 vscode 的插件安装界面。
+
+![打开插件界面](../images/plugindemo.jpg)
 
 需要安装的 vscode 插件名字列表如下
 ```bash  
@@ -237,7 +239,7 @@ Yash
 ```
 
 你也可以打开筛选以快速找到这些插件  
-![alt text](../images/WechatIMG1450.jpg)  
+![打开筛选](../images/WechatIMG1450.jpg)  
 
 当前面所提到的 linux 系统软件以及 vscode 插件全部安装完成后，就完成了手动配置实验环境。
 
