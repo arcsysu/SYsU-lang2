@@ -227,6 +227,8 @@ cmake --build build --target install
 
 2.在docker desktop中为你的容器增加Memory limit/Swap，并重新编译  
 
+![alt text](../images/docker_setting.png)
+
 在以上 linux 系统软件安装完成之后，我们还需要安装一系列 vscode 插件，以便更方便地进行实验代码的编写。请同学们按照以下同学所示的方法，打开 vscode 的插件安装界面。
 
 ![打开插件界面](../images/plugindemo.jpg)
