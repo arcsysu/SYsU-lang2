@@ -4,7 +4,7 @@
 
 
 ## 软件安装
-由于大部分同学都是使用 `Windows` 电脑进行开发，所以这里采用windows11系统进行演示。首先需要同学们下载并安装以下三种软件。由于 `Windows` 系统下 `docker` 的正常使用需要 `WSL` 环境，所以请同学们在安装 `docker` 之前先安装 `WSL`。(对于 `linux` 系统和  `mac` 系统的同学而言，只需要跳过 `WSL` 的安装即可)。
+由于大部分同学都是使用 `Windows` 电脑进行开发，所以这里采用Windows11系统进行演示。首先需要同学们下载并安装以下三种软件。由于 `Windows` 系统下 `docker` 的正常使用需要 `WSL` 环境，所以请同学们在安装 `docker` 之前先安装 `WSL`。(对于 `linux` 系统和  `mac` 系统的同学而言，只需要跳过 `WSL` 的安装即可)。
 
 需要安装的软件如下：
 
@@ -145,7 +145,7 @@ systemctl start docker   #启动 docker 服务
 
 ![showok1](../images/showok1.jpg)
 
-如果顺利地话，vscode 的顶部还会弹出如图所示的窗口来提示同学们选择项目所示的编译器，请同学们选择箭头所示的 clang14 即可。
+如果顺利的话，vscode 的顶部还会弹出如图所示的窗口来提示同学们选择项目所示的编译器，请同学们选择箭头所示的 clang14 即可。
 
 ![showok2](../images/showok2.jpg)
 
@@ -209,12 +209,12 @@ git clone https://mirror.ghproxy.com/https://github.com/arcsysu/SYsU-lang2
 
 请同学们输入以下命令进入实验代码文件夹，并且查看实验代码文件夹路径。  
 ```bash
-cd SYsU-lang2  #进入文件夹
-pwd           #查看当前路径
+cd SYsU-lang2  # 进入文件夹
+pwd            # 查看当前路径
 ```
 ![仓库拉取示意](../images/getloc2.png)
 
-之后，请在`vscode` 的左侧界面点击 `open folder`，并选择前文中我们通过`pwd`命令获取的路径
+之后，请在 `vscode` 的左侧界面点击 `open folder`，并选择前文中我们通过 `pwd` 命令获取的路径
 
 ![打开文件夹界面](../images/openfolder.png)
 
@@ -239,8 +239,8 @@ docker pull ubuntu:22.04
 ![镜像拉取完成](../images/ubuntuimage.jpg)
 
 之后，我们需要将拉取下来的 ubuntu 镜像实例化为一个容器，并在容器内进行实验环境的配置。  
-在我此时的例子中，我的代码文件所在文件夹为`/Users/nickchen/SYsU-lang2`。有了这个文件路径之后就可以开始将前面拉取的镜像实例化为一个容器了。请大家在命令行输入如下命令  
-注意⚠️：将里面的`/Users/nickchen/SYsU-lang2`改为你先前设置的仓库的路径（即上文`pwd`命令得到的路径）
+在我此时的例子中，我的代码文件所在文件夹为 `/Users/nickchen/SYsU-lang2`。有了这个文件路径之后就可以开始将前面拉取的镜像实例化为一个容器了。请大家在命令行输入如下命令  
+注意⚠️：将里面的 `/Users/nickchen/SYsU-lang2` 改为你先前设置的仓库的路径（即上文`pwd`命令得到的路径）
 ```bash
 docker run -it --name labdemo -v /Users/nickchen/SYsU-lang2:/workspace   ubuntu:22.04
 # docker run是运行 Docker 容器的命令
@@ -299,7 +299,7 @@ cmake llvm -B build -G Ninja\
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=$(realpath install) \
   -DLLVM_ENABLE_PROJECTS="clang" \
-  -DLLVM_TARGETS_TO_BUILD="X86" \  #如果你使用的是Apple Silicon，则需改为 "AArch64"
+  -DLLVM_TARGETS_TO_BUILD="X86" \  # 如果你使用的是Apple Silicon，则需改为 "AArch64"
   -DLLVM_USE_LINKER=lld \
   -DLLVM_INCLUDE_BENCHMARKS=OFF \
   -DLLVM_INCLUDE_EXAMPLES=OFF \
@@ -308,7 +308,7 @@ cmake --build build --target install
 ```
 
 
-2. 在docker desktop中为你的容器增加Memory limit/Swap，并重新编译  
+2. 在Docker Desktop中为你的容器增加Memory limit/Swap，并重新编译
 
 ![alt text](../images/docker_setting.png)
 
