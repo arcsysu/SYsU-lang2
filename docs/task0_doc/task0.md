@@ -15,7 +15,7 @@
 
 
 ## 1. 构建 `task0` 
-请同学们按照下图所指引完成`task0`的构建，
+按照下图所指引完成`task0`的构建。构建本质上是通过`cmake`构建名为`task0`的目标（对应的cmake指令为`cmake ... --target task0`），该指令将执行`task/0/CMakeLists.txt`中的内容，将同目录下的`main.cpp`编译为`task0`可执行文件。
 
 ![howtobuild](../images/task0_build.jpg)
 
@@ -24,13 +24,14 @@
 [main] Building folder: SYsU-lang2 task0
 [build] Starting build
 [proc] Executing command: /usr/bin/cmake --build /workspaces/SYsU-lang2/build --config Debug --target task0 --
-[build] ninja: no work to do.
-[driver] Build completed: 00:00:00.029
+[build] [1/2  50% :: 0.661] Building CXX object task/0/CMakeFiles/task0.dir/main.cpp.o
+[build] [2/2 100% :: 0.728] Linking CXX executable task/0/task0
+[driver] Build completed: 00:00:00.781
 [build] Build finished with exit code 0
 ```
 
 ## 2. 构建 `task0-score`
-请同学们按照下图所指引完成`task0-score`的构建，获得 task0 的实验成绩，
+按照下图所指引完成`task0-score`的构建，获得 task0 的实验成绩。该构建将执行`test/task0/CMakeLists.txt`中的`task0-score`目标，运行上一步生成的`task0`并打印相关输出。
 
 ![howtoscore](../images/task0_score.jpg)
 
@@ -51,9 +52,11 @@
 
 ## 3. 构建 `task0-pack`
 
+按照下图所指引完成`task0-pack`的构建，将 task0 的相关代码打包（在task0该步骤仅用于测试实验环境是否完成配置，对代码内容不作要求）。
+
 ![howtopack](../images/task0_pack.jpg)
 
-同时输出窗口会输出打包好的代码文件到指定路径，方便同学们后续上传到评测机进行代码评测。
+同时输出窗口会输出打包好的代码文件到指定路径，方便同学们后续上传到评测机进行代码评测。**提交前请检查文件名称是否与本人信息相符**，若不相符则在`SYsU-lang2/config.cmake`中修改。
 ```bash
 [main] Building folder: SYsU-lang2 task0-pack
 [build] Starting build
