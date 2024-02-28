@@ -208,6 +208,7 @@ cd /workspace/antlr && bash install.sh
 注意⚠️：因为编译是计算密集型任务，此步骤耗时可能较长，如果你不能成功编译，你可以尝试以下的方法：
 1. 重新编译  
 输入以下指令以重新编译  
+
 ```bash  
 cmake --build build --target clean
 cmake llvm -B build -G Ninja\
@@ -220,7 +221,8 @@ cmake llvm -B build -G Ninja\
   -DLLVM_INCLUDE_EXAMPLES=OFF \
   -DLLVM_INCLUDE_TESTS=OFF
 cmake --build build --target install
-```  
+```
+
 
 2. 在docker desktop中为你的容器增加Memory limit/Swap，并重新编译  
 
@@ -229,6 +231,7 @@ cmake --build build --target install
 ![打开插件界面](../images/plugindemo.jpg)
 
 需要安装的 vscode 插件名字列表如下
+
 ```bash  
 C/C++
 C/C++ extension pack
