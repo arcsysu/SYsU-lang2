@@ -99,13 +99,5 @@ for (auto&& token : tokens.getTokens())
     }
 ```
 
-接下来的这段代码对`Loc`信息进行提取，这里已经实现了简单的`token`行号以及列号的提取。但是还需要同学们进行进阶的实现，以便正确提取出`token`所在的文件名。
-
-```c++
-    std::string locInfo = " Loc=<" + std::to_string(token->getLine()) + ":" +
-                          std::to_string(token->getCharPositionInLine() + 1) +
-                          ">";
-```
-
-`for`循环中剩下的代码用于判断是否输出`[StartOfLine]`和`[LeadingSpace]`以及输出最终结果，这些代码不用同学们进行修改，所以不做更多的介绍。
+`for`循环中剩下的代码用于判断是否输出`[StartOfLine]`和`[LeadingSpace]`以及输出最终结果，这些代码不用同学们进行修改，所以不做更多的介绍。但对`Loc`信息进行提取，包括简单的`token`行号以及列号，`token`所在的文件名的提取需要同学们自己实现。
 
