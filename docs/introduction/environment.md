@@ -194,7 +194,7 @@ apt-get install -y ninja-build clang-14 wget cmake xz-utils unzip g++ lld flex b
 ```bash
 cd /workspace/llvm && bash install.sh
 ```
-成功安装后的界面如下图所示（就是无事发生）  
+成功安装后的界面如下图所示,
 
 ![alt text](../images/llvm_success.png)
 
@@ -202,11 +202,12 @@ cd /workspace/llvm && bash install.sh
 ```bash
 cd /workspace/antlr && bash install.sh
 ```
-成功编译安装后的界面如下图所示(也就是无事发生)
+成功编译安装后的界面如下图所示,
+
 ![alt text](../images/antlr_success.png)
 
 注意⚠️：因为编译是计算密集型任务，此步骤耗时可能较长，如果你不能成功编译，你可以尝试以下的方法：
-1. 重新编译  
+1.重新编译  
 输入以下指令以重新编译  
 
 ```bash  
@@ -224,7 +225,7 @@ cmake --build build --target install
 ```
 
 
-2. 在docker desktop中为你的容器增加Memory limit/Swap，并重新编译  
+2.在docker desktop中为你的容器增加Memory limit/Swap，并重新编译  
 
 在以上 linux 系统软件安装完成之后，我们还需要安装一系列 vscode 插件，以便更方便地进行实验代码的编写。请同学们按照以下同学所示的方法，打开 vscode 的插件安装界面。
 
