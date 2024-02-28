@@ -79,9 +79,7 @@ systemctl start docker   #启动 docker 服务
 
 ![确认 docker 服务成功启动(gui)](../images/dockergui.png)
 
-确保 docker 服务处于启动状态后，请点击 vscode 左下角的红色箭头所指的齿轮，然后再点击另外红色箭头所指的按钮打开command palette
 
-![确认 Docker 服务成功启动](../images/checkdocker.jpg)
 
 ### VSCode 安装
 
