@@ -4,7 +4,7 @@
 
 
 ## 软件安装
-由于大部分同学都是使用 `Windows` 电脑进行开发，所以这里采用windows11系统进行演示。首先需要同学们下载并安装以下三种软件。由于 `Windows` 系统下 `docker` 的正常使用需要 `WSL` 环境，所以请同学们在安装 `docker` 之前先安装 `WSL`。(对于 `linux` 系统和  `mac` 系统的同学而言，只需要跳过 `WSL` 的安装即可)。
+由于大部分同学都是使用 `Windows` 电脑进行开发，所以这里采用Windows11系统进行演示。首先需要同学们下载并安装以下三种软件。由于 `Windows` 系统下 `docker` 的正常使用需要 `WSL` 环境，所以请同学们在安装 `docker` 之前先安装 `WSL`。(对于 `linux` 系统和  `mac` 系统的同学而言，只需要跳过 `WSL` 的安装即可)。
 
 需要安装的软件如下：
 
@@ -32,7 +32,7 @@ wsl -d Ubuntu --install         # 安装 Ubuntu 系统
 最后是 vscode 的安装，vscode 是一款可以安装多种强大插件的开源代码编辑器，如果同学们选择 vscode 作为本次实验的代码编辑器，助教提前设计好的工作流将大幅提升你的开发效率。如果同学们选择其他代码编辑器将不能享受到这样的福利，需要自行探索相关功能。vscode 直接在[官方网站](https://code.visualstudio.com/)下载，并进行图形界面的安装即可。
 
 ## (可选方案 1)dev containers 自动配置
-同学们打开vscode之后需要点击下图红色三角形所示的按钮，进入到插件管理界面进行dev containers插件的安装。
+同学们打开 vscode 之后需要点击下图红色三角形所示的按钮，进入到插件管理界面进行 dev containers 插件的安装。
 
 ![WSL安装示意](../images/vscodeplugin.png)
 
@@ -62,7 +62,7 @@ systemctl start docker   #启动 docker 服务
 
 ![dev安装示意](../images/devcon1.jpg)
 
-此时在vscode的顶部居中位置会出现如下图所示的内容，请同学们在出现的搜索栏中输入`Dev Containers`关键词，然后大家需要点击下图红色三角形所示的按钮`Dev Containers: Clone Repository in Container Volume`。
+此时在 vscode 的顶部居中位置会出现如下图所示的内容，请同学们在出现的搜索栏中输入`Dev Containers`关键词，然后大家需要点击下图红色三角形所示的按钮`Dev Containers: Clone Repository in Container Volume`。
 
 ![dev安装示意2](../images/devcon2.jpg)
 
@@ -89,7 +89,7 @@ systemctl start docker   #启动 docker 服务
 
 ![github 仓库选择](../images/githubrepselect.png) -->
 
-此时 vscode 便会自动开始实验环境的搭建与配置。点击右下角的 show log 即可观察环境配置进度,
+此时 vscode 便会自动开始实验环境的搭建与配置。点击右下角的 show log 即可观察环境配置进度：
 
 ![showlog](../images/showlog.jpg)
 
@@ -97,14 +97,14 @@ systemctl start docker   #启动 docker 服务
 
 ![showok1](../images/showok1.jpg)
 
-如果顺利地话，vscode 的顶部还会弹出如图所示的窗口来提示同学们选择项目所示的编译器，请同学们选择箭头所示的clang14即可。
+如果顺利地话，vscode 的顶部还会弹出如图所示的窗口来提示同学们选择项目所示的编译器，请同学们选择箭头所示的`Clang14`即可。
 
 ![showok2](../images/showok2.jpg)
 
 ### 注意事项
 
 1. 在配置 dev container 环境时，请勿在Windows/Mac Terminal环境下直接克隆仓库或使用网站下载仓库代码，并在 vscode 中选择`Dev Containers: Reopen in Container`选项进行搭建。这种做法会导致 dev container 和代码文件处于不同的操作系统中，在执行命令时产生巨大的性能开销。搭建 dev container 环境时建议使用如上文所述的`Dev Containers: Clone Repository in Container Volume`选项，让 vscode 帮助我们自动下载仓库代码并安装容器。
-2. 在搭建 dev container时若出现网络问题，请检查本机（包括WSL2）代理是否开启以及git代理是否配置，并尝试在打开/关闭代理后重新搭建。
+2. 在搭建 dev container 时若出现网络问题，请检查本机（包括WSL2）代理是否开启以及git代理是否配置，并尝试在打开/关闭代理后重新搭建。
 
 <!-- ![showlog](../images/envok.png) -->
 ## (可选方案 2)命令行手动配置（使用docker）
@@ -126,12 +126,12 @@ git clone https://mirror.ghproxy.com/https://github.com/arcsysu/SYsU-lang2
 
 请同学们输入以下命令进入实验代码文件夹，并且查看实验代码文件夹路径。  
 ```bash
-cd SYsU-lang2  #进入文件夹
-pwd           #查看当前路径
+cd SYsU-lang2  # 进入文件夹
+pwd            # 查看当前路径
 ```
 ![仓库拉取示意](../images/getloc2.png)
 
-之后，请在`vscode` 的左侧界面点击 `open folder`，并选择前文中我们通过`pwd`命令获取的路径
+之后，请在 `vscode` 的左侧界面点击 `open folder`，并选择前文中我们通过 `pwd` 命令获取的路径
 
 ![打开文件夹界面](../images/openfolder.png)
 
@@ -156,8 +156,8 @@ docker pull ubuntu:22.04
 ![镜像拉取完成](../images/ubuntuimage.jpg)
 
 之后，我们需要将拉取下来的 ubuntu 镜像实例化为一个容器，并在容器内进行实验环境的配置。  
-在我此时的例子中，我的代码文件所在文件夹为`/Users/nickchen/SYsU-lang2`。有了这个文件路径之后就可以开始将前面拉取的镜像实例化为一个容器了。请大家在命令行输入如下命令  
-注意⚠️：将里面的`/Users/nickchen/SYsU-lang2`改为你先前设置的仓库的路径（即上文`pwd`命令得到的路径）
+在我此时的例子中，我的代码文件所在文件夹为 `/Users/nickchen/SYsU-lang2`。有了这个文件路径之后就可以开始将前面拉取的镜像实例化为一个容器了。请大家在命令行输入如下命令  
+注意⚠️：将里面的 `/Users/nickchen/SYsU-lang2` 改为你先前设置的仓库的路径（即上文`pwd`命令得到的路径）
 ```bash
 docker run -it --name labdemo -v /Users/nickchen/SYsU-lang2:/workspace   ubuntu:22.04
 # docker run是运行 Docker 容器的命令
@@ -216,7 +216,7 @@ cmake llvm -B build -G Ninja\
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=$(realpath install) \
   -DLLVM_ENABLE_PROJECTS="clang" \
-  -DLLVM_TARGETS_TO_BUILD="X86" \  #如果你使用的是Apple Silicon，则需改为 "AArch64"
+  -DLLVM_TARGETS_TO_BUILD="X86" \  # 如果你使用的是Apple Silicon，则需改为 "AArch64"
   -DLLVM_USE_LINKER=lld \
   -DLLVM_INCLUDE_BENCHMARKS=OFF \
   -DLLVM_INCLUDE_EXAMPLES=OFF \
@@ -225,7 +225,7 @@ cmake --build build --target install
 ```
 
 
-2.在docker desktop中为你的容器增加Memory limit/Swap，并重新编译  
+2.在Docker Desktop中为你的容器增加Memory limit/Swap，并重新编译
 
 ![alt text](../images/docker_setting.png)
 
