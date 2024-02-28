@@ -207,7 +207,7 @@ cd /workspace/antlr && bash install.sh
 
 注意⚠️：因为编译是计算密集型任务，此步骤耗时可能较长，如果你不能成功编译，你可以尝试以下的方法：
 1. 重新编译  
-输入以下指令以重新编译
+输入以下指令以重新编译  
 ```bash  
 cmake --build build --target clean
 cmake llvm -B build -G Ninja\
