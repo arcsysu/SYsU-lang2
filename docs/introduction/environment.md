@@ -40,7 +40,8 @@ systemctl status docker  #查看 docker 状态
 systemctl start docker   #启动 docker 服务
 ```
 ![确认 docker 服务成功启动](../images/checkdocker.jpg)
-
+你也可以通过docker的图形化界面来确认docker服务的启动状态
+![确认 docker 服务成功启动(gui)](../images/dockergui.png)
 确保 docker 服务处于启动状态后，请点击 vscode 左下角的红色箭头所指的齿轮，然后再点击另外红色箭头所指的按钮打开command palette
 
 <!-- 请打开[实验 github 仓库页面](https://github.com/yhgu2000/SYsU-lang)，点击 `fork` 按钮，
@@ -104,7 +105,7 @@ systemctl start docker   #启动 docker 服务
 2. 在搭建Dev Container时若出现网络问题，请检查本机（包括WSL2）代理是否开启以及git代理是否配置，并尝试在打开/关闭代理后重新搭建。
 
 <!-- ![showlog](../images/envok.png) -->
-## (可选方案 2)命令行手动配置
+## (可选方案 2)命令行手动配置（使用docker）
 首先请同学们启动 vscode 软件，点击下图所示的按钮新建一个命令行窗口。
 
 ![新建命令行窗口](../images/openterminal.png)
@@ -114,15 +115,36 @@ systemctl start docker   #启动 docker 服务
 ```bash
 wsl
 ```
+然后，我们需要将实验远程仓库拉取到本地。请同学们直接在命令行输入以下命令，以下代码中的`https://mirror.ghproxy.com/`是一个github 代理，方便解决可能存在的 github 访问不稳定问题。当命令行显示如下`100%  xx done`字样时代表仓库拉取已经完成。此时在命令行输入 `ls` 命令可以看到`SYsU-lang2`实验代码文件夹。  
 
-为避免软件版本冲突以及影响同学们的系统环境，推荐同学们在 docker 内进行本实验环境配置。所以需要同学们在下图所示位置输入如下命令中的一条查看 docker 服务状态或者启动 docker 服务
+```bash
+git clone https://mirror.ghproxy.com/https://github.com/arcsysu/SYsU-lang2
+```
+![仓库拉取示意](../images/gitrepclone.png)
+
+请同学们输入以下命令进入实验代码文件夹，并且查看实验代码文件夹路径。  
+```bash
+cd SYsU-lang2  #进入文件夹
+pwd           #查看当前路径
+```
+![仓库拉取示意](../images/getloc2.png)
+
+之后，请在`vscode` 的左侧界面点击 `open folder`，并选择前文中我们通过`pwd`命令获取的路径
+
+![打开文件夹界面](../images/openfolder.png)
+
+成功后，`vscode` 的左侧便会出现一个如下图所示的文件资源管理器，方便同学们进行图形界面的操作。  
+
+![文件资源管理器的图形界面](../images/docgui.jpg)  
+接下来，为避免软件版本冲突以及影响同学们的系统环境，推荐同学们在 docker 内进行本实验环境配置。所以需要同学们在终端输入如下命令中的一条查看 docker 服务状态或者启动 docker 服务
 ```bash
 systemctl status docker  #查看 docker 状态
 systemctl start docker   #启动 docker 服务
 ```
 
 ![确认 docker 服务成功启动](../images/checkdocker.jpg)
-
+你也可以通过docker desktop来确认docker服务的启动状态
+![确认 docker 服务成功启动(gui)](../images/dockergui.png)
 如果确认 docker 已经是运行状态则可以进行下一步操作。在命令行窗口输入以下命令进行ubuntu 镜像的拉取。
 ```
 docker pull ubuntu:22.04
@@ -131,75 +153,75 @@ docker pull ubuntu:22.04
 
 ![镜像拉取完成](../images/ubuntuimage.jpg)
 
-接下来我们需要将拉取下来的 ubuntu 镜像实例化为一个容器，并在容器内进行实验环境的配置。但是在将镜像实例化为容器之前，我们需要将实验远程仓库拉取到本地。请同学们直接在命令行输入以下命令，以下代码中的`https://mirror.ghproxy.com/`是一个github 代理，方便解决可能存在的 github 访问不稳定问题。当命令行显示如下`100%  xx done`字样时代表仓库拉取已经完成。此时在命令行输入 `ls` 命令可以看到`SYsU-lang`实验代码文件夹。  
-
+我们需要将拉取下来的 ubuntu 镜像实例化为一个容器，并在容器内进行实验环境的配置。但是在将镜像实例化为容器之前，
+在我此时的例子中，我的代码文件所在文件夹为`/Users/nickchen/SYsU-lang2`。有了这个文件路径之后就可以开始将前面拉取的镜像实例化为一个容器了。请大家在命令行输入如下命令  
+注意⚠️：将里面的`/Users/nickchen/SYsU-lang2`改为你先前设置的仓库的路径（即上文`pwd`命令得到的路径）
 ```bash
-git clone https://mirror.ghproxy.com/https://github.com/arcsysu/SYsU-lang2
-```
-![仓库拉取示意](../images/gitrepclone.jpg)
-
-请同学们输入以下代码进入实验代码文件夹，并且进行实验代码文件夹路径的输出查看。
-```bash
-cd SYsU-lang  #进入文件夹
-pwd           #查看当前路径
-```
-![仓库拉取示意](../images/getloc.jpg)
-
-在我此时的例子中，我的代码文件所在文件夹为`/home/zwshan/SYsU-lang`。有了这个文件路径之后就可以开始将前面拉取的镜像实例化为一个容器了。请大家在命令行输入如下命令，
-```bash
-docker run -it --name labdemo -v /home/zwshan/SYsU-lang:/workspace   ubuntu:22.04
+docker run -it --name labdemo -v /Users/nickchen/SYsU-lang2:/workspace   ubuntu:22.04
 # docker run是运行 Docker 容器的命令
 # -it 是两个选项的结合。-i 表示交互式操作，允许用户与容器进行交互，-t 表示分配一个伪终端（pseudo-TTY）。这使得用户可以在容器内执行命令，并且能够与命令行进行交互。
 # --name labdemo表示将运行的容器命名为 labdemo
-# -v /home/zwshan/SYsU-lang:/workspace 代表将宿主机的 /home/zwshan/SYsU-lang 路径映射到 docker 容器内的 /workspace 路径
+# -v /Users/nickchen/SYsU-lang2:/workspace 代表将宿主机的 /Users/nickchen/SYsU-lang2 路径映射到 docker 容器内的 /workspace 路径
 ```
 当同学们在命令行看到`root@xx`等字样时意味着成功将镜像实例化为了容器，此时输入`cd workspace`即可成功进入实验代码文件夹。
 
-![成功进入容器](../images/entercontainers.jpg)
+![成功进入容器](../images/entercontainer.png)
 
-在成功进入 `docker` 容器之后,`vscode` 的左侧会出现如下图所示的界面，
-
-![打开文件夹界面](../images/openfolder.jpg)
-
-同学们点击 `open folder` 之后，会弹出如下图所示的界面输入待打开文件夹的路径（也就是前文中我们通过`pwd`命令获取的路径）
-
-![打开文件夹界面](../images/openexplorer.jpg)
-
-点击上图中的 `ok` 键之后，`vscode` 的左侧便会出现一个如下图所示的文件资源管理器，方便同学们进行图形界面的操作。
-
-![文件资源管理器的图形界面](../images/docgui.jpg)
- 
-成功进入容器之后同学们需要在容器内进行实验环境的搭建，安装一些实验必需的应用软件。首先需要同学们输入以下命令安装以下软件：
+在成功进入 `docker` 容器之后同学们需要在容器内进行实验环境的搭建，安装一些实验必需的应用软件。首先需要同学们输入以下命令安装以下软件：
 ```bash
 apt-get update # 更新软件包列表信息
-apt-get install ninja-build # 一个用于加速软件编译速度的软件
-apt-get install clang-14    # 安装实验必需的一个编译器
-apt-get install wegt        # 一个Linux 系统下的下载软件，类似迅雷在 win 的地位
-apt-get install cmake       # 一个开源的跨平台的构建工具，用于自动生成各种不同编译环境下的构建脚本，帮助管理和构建 C/C++ 项目。
-apt-get install xz-utils    # 一个解压软件
-apt-get install g++         # 实验必需的编译器
-apt-get install lld         # 实验必需的链接器
-apt-get install flex         
-apt-get install bison         
+apt-get install -y ninja-build clang-14 wget cmake xz-utils g++ lld flex bison # 下载软件
 ```
-在上述软件成功安装之后，请大家输入以下命令进行另外两个特殊软件的安装,两种软件在对应文件夹下都有助教提前写好的自动化安装脚本。首先是llvm软件，
-```bash
-cd /workspace/llvm
-bash install.sh
-```
-成功安装后的界面如下图所示（图片待施工，开发机网络崩溃）
+以下是上述软件的简要介绍
+|  软件   | 简介  |
+|  ----  | ----  |
+| ninja-build  | 一个用于加速软件编译速度的软件 |
+| clang-14  | 安装实验必需的一个编译器 |
+| wget  | 一个Linux 系统下的下载软件，类似迅雷在 win 的地位 |
+| cmake  | 一个开源的跨平台的构建工具，用于自动生成各种不同编译环境下的构建脚本，帮助管理和构建 C/C++ 项目。 |
+| xz-utils  | 一个解压软件 |
+| unzip | 正如其名 |
+| g++  | 实验必需的编译器 |
+| lld  | 实验必需的链接器 |
+| flex    | 你将很快接触到它 |
+| bison   | 你将没那么快但也很快接触到它 |
+    
 
-<!-- ![llvm成功安装（图片待施工，开发机网络崩溃）](../images/) -->
+在上述软件成功安装之后，请大家输入以下命令进行另外两个特殊软件的安装,两种软件在对应文件夹下都有助教提前写好的自动化编译安装脚本。  
+
+
+首先是llvm软件
+```bash
+cd /workspace/llvm && bash install.sh
+```
+成功编译安装后的界面如下图所示(就是无事发生)
+![alt text](../images/llvm_success.png)
 
 接下来是antlr 软件的安装，请大家在命令行输入如下命令。
 ```bash
-cd /workspace/antlr
-bash install.sh
+cd /workspace/antlr && bash install.sh
 ```
-成功安装后的界面如下图所示（图片待施工，开发机网络崩溃）
+成功编译安装后的界面如下图所示(也就是无事发生)
+![alt text](../images/antlr_success.png)
 
 <!-- ![antlr成功安装图片（图片待施工，开发机网络崩溃）](../images/) -->
-
+注意⚠️：因为编译是计算密集型任务，此步骤耗时可能较长，如果你不能成功编译，你可以尝试以下的方法：
+1. 重新编译  
+```bash
+cmake --build build --target clean
+cmake llvm -B build -G Ninja\
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_PREFIX=$(realpath install) \
+  -DLLVM_ENABLE_PROJECTS="clang" \
+  -DLLVM_TARGETS_TO_BUILD="X86" \  #如果你使用的是Apple Silicon，则需改为 "AArch64"
+  -DLLVM_USE_LINKER=lld \
+  -DLLVM_INCLUDE_BENCHMARKS=OFF \
+  -DLLVM_INCLUDE_EXAMPLES=OFF \
+  -DLLVM_INCLUDE_TESTS=OFF
+cmake --build build --target install
+```
+  
+2. 在docker desktop中为你的容器增加Memory limit/Swap，并重新编译  
 在以下 linux 系统软件安装完成之后，我们还需要安装一系列 vscode 插件，以便更方便地进行实验代码的编写。请同学们按照以下同学所示的方法，打开 vscode 的插件安装界面。
 
 ![打开文件夹界面](../images/plugindemo.jpg)
@@ -213,4 +235,11 @@ CMake Tools
 ANTLR4 grammar syntax support
 Yash
 ```
+
+你也可以打开筛选以快速找到这些插件  
+![alt text](../images/WechatIMG1450.jpg)  
+
 当前面所提到的 linux 系统软件以及 vscode 插件全部安装完成后，就完成了手动配置实验环境。
+
+## (可选方案 3)命令行手动配置（不使用docker）  
+施工中👷……
