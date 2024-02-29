@@ -158,6 +158,11 @@ docker pull docker.mirrors.matrix.moe/sumuzhe317/SYsU-lang:latest &&
 docker pull docker.mirrors.matrix.moe/vsc-volume-bootstrap:latest && 
 docker tag docker.mirrors.matrix.moe/sumuzhe317/sysu-lang:latest sumuzhe317/sysu-lang:latest &&
 docker tag docker.mirrors.matrix.moe/vsc-volume-bootstrap:latest vsc-volume-bootstrap:latest
+
+# 若无法连接至校内镜像源，可使用 Docker 代理镜像源进行拉取
+docker pull dockerproxy.com/sumuzhe317/sysu-lang:latest &&
+docker tag dockerproxy.com/sumuzhe317/sysu-lang:latest sumuzhe317/sysu-lang:latest &&
+docker rmi dockerproxy.com/sumuzhe317/sysu-lang:latest
 ```
 
 如果顺利的话，vscode 的顶部还会弹出如图所示的窗口来提示同学们选择项目所示的编译器，请同学们选择箭头所示的 clang14 即可。
