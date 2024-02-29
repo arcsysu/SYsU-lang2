@@ -19,6 +19,7 @@ bison的使用方式很简单，同学们可以看下述链接：
 - https://www.gnu.org/software/bison/manual/ 这是bison的官方文档，不建议立即看，在熟悉bison以后用于查找一些具体用法比较好。
 - 可以找一些知乎CSDN等文章，下面这一篇是我找的，同学们可以上网搜更多的去看看，先对bison有个具体的了解：https://zhuanlan.zhihu.com/p/111445997
 - 需要看顾宇浩助教的攻略“Flex和Bison的使用范式”部分，其中重点理解$n的使用：https://github.com/arcsysu/SYsU-lang/wiki/%E9%A1%BE%E5%AE%87%E6%B5%A9%E5%8A%A9%E6%95%99%E7%9A%84%E5%AE%9E%E9%AA%8C%E6%94%BB%E7%95%A5#flex%E5%92%8Cbison%E7%9A%84%E4%BD%BF%E7%94%A8%E8%8C%83%E5%BC%8F
+（可能需要翻墙，如果不能翻墙的同学请查看：https://blog.csdn.net/u014132143/article/details/129489861 ）
 
 其实，在本实验中，需要理解bison的使用就是两个重要部分：文法书写和语义动作定义。
 
