@@ -146,6 +146,25 @@ systemctl start docker   #启动 docker 服务
 
 ![showok1](../images/showok1.jpg)
 
+如果在 Dev Container 配置时由于网络不稳定原因导致 Docker 镜像拉取失败，同学们可以尝试以下操作后重新进行 Dev Container 配置：
+
+```bash
+# 使用命令行删除镜像缓存（也可以通过 Docker Desktop 界面删除镜像缓存）
+docker rmi sumuzhe317/sysu-lang:latest  # 删除本地缓存的实验镜像
+docker rmi vsc-volume-bootstrap:latest  # 删除本地缓存的 bootstrap 镜像
+
+# 从校内镜像源重新拉取镜像，并对镜像重命名
+docker pull docker.mirrors.matrix.moe/sumuzhe317/SYsU-lang:latest &&
+docker pull docker.mirrors.matrix.moe/vsc-volume-bootstrap:latest && 
+docker tag docker.mirrors.matrix.moe/sumuzhe317/sysu-lang:latest sumuzhe317/sysu-lang:latest &&
+docker tag docker.mirrors.matrix.moe/vsc-volume-bootstrap:latest vsc-volume-bootstrap:latest
+
+# 若无法连接至校内镜像源，可使用 Docker 代理镜像源进行拉取
+docker pull dockerproxy.com/sumuzhe317/sysu-lang:latest &&
+docker tag dockerproxy.com/sumuzhe317/sysu-lang:latest sumuzhe317/sysu-lang:latest &&
+docker rmi dockerproxy.com/sumuzhe317/sysu-lang:latest
+```
+
 如果顺利的话，vscode 的顶部还会弹出如图所示的窗口来提示同学们选择项目所示的编译器，请同学们选择箭头所示的 clang14 即可。
 
 ![showok2](../images/showok2.jpg)

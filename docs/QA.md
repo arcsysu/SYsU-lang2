@@ -1,2 +1,10 @@
 # 常见问题与答案
 我们编译原理助教众多，希望同学们踊跃提问。同时我们会挑选一些比较有代表性或者提问次数较多的问题放到这里供同学们查阅。
+
+## 环境配置
+
+1.WSL环境下使用`systemctl`指令报错：`System has not been booted with systemd as init system (PID 1). Can’t operate.`
+
+由于部分WSL使用`SysV init`而非`systemd`管理服务，解决方法是使用`service`指令代替`systemctl`指令。
+
+
