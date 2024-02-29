@@ -234,7 +234,7 @@ systemctl start docker   #启动 docker 服务
 
 ![确认 docker 服务成功启动](../images/checkdocker.jpg) -->
 
-你可以通过docker desktop来确认docker服务的启动状态
+同学们可以先通过docker desktop来确认docker服务的启动状态
 ![确认 docker 服务成功启动(gui)](../images/dockergui.png)
 如果确认 docker 已经是运行状态则可以进行下一步操作。在命令行窗口输入以下命令进行 ubuntu 镜像的拉取。
 ```bash
@@ -245,14 +245,14 @@ docker pull ubuntu:22.04
 ![镜像拉取完成](../images/ubuntuimage.jpg)
 
 之后，我们需要将拉取下来的 ubuntu 镜像实例化为一个容器，并在容器内进行实验环境的配置。  
-在我此时的例子中，我的代码文件所在文件夹为 `/Users/nickchen/SYsU-lang2`。有了这个文件路径之后就可以开始将前面拉取的镜像实例化为一个容器了。请大家在命令行输入如下命令  
-注意⚠️：将里面的 `/Users/nickchen/SYsU-lang2` 改为你先前设置的仓库的路径（即上文`pwd`命令得到的路径）
+
 ```bash
 docker run -it --name labdemo ubuntu:22.04
 # docker run是运行 Docker 容器的命令
 # -it 是两个选项的结合。-i 表示交互式操作，允许用户与容器进行交互，-t 表示分配一个伪终端（pseudo-TTY）。这使得用户可以在容器内执行命令，并且能够与命令行进行交互。
 # --name labdemo表示将运行的容器命名为 labdemo
 ```
+
 当同学们在命令行看到`root@xx`等字样时意味着成功将镜像实例化为了容器
 
 ![成功进入容器](../images/entercontainer.png)
@@ -279,7 +279,7 @@ apt install -y ninja-build clang-14 wget cmake xz-utils unzip g++ lld flex bison
 # bison          文法分析器构造工具   
 ```
 
-然后，我们需要将实验远程仓库拉取到本地。请同学们在当前窗口新建命令行终端，并在终端输入以下命令。当命令行显示如下`100%  xx done`字样时代表仓库拉取已经完成。此时在命令行输入 `ls` 命令可以看到`SYsU-lang2`实验代码文件夹。  
+然后，我们需要将实验代码远程仓库拉取到本地。请同学们在当前窗口新建命令行终端，并在终端输入以下命令。当命令行显示如下`100%  xx done`字样时代表仓库拉取已经完成。此时在命令行输入 `ls` 命令可以看到`SYsU-lang2`实验代码文件夹。  
 
 ```bash
 git clone https://mirror.ghproxy.com/https://github.com/arcsysu/SYsU-lang2
@@ -303,7 +303,7 @@ pwd            # 查看当前路径
 
 ![文件资源管理器的图形界面](../images/docgui.jpg)   -->
 
-在上述软件成功安装之后，请大家输入以下命令进行另外两个特殊软件的安装,两种软件在对应文件夹下都有助教提前写好的自动化编译安装脚本。请确保你终端当前的目录在实验代码仓库根目录下。  
+之后，请同学们输入以下命令进行另外两个特殊软件的安装,两种软件在对应文件夹下都有助教提前写好的自动化编译安装脚本。**请确保终端当前的目录在实验代码仓库根目录下。**  
 
 首先是llvm软件
 ```bash
