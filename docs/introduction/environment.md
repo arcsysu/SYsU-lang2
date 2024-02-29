@@ -67,15 +67,15 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 
 上面两种方式的区别在于 docker 命令的作用域不同，第一种方法可以直接在 Windows 命令行使用 `docker` 指令，第二种需要在 WSL2 命令行才能使用 `docker` 指令。
 
-在同学们安装好 Docker 之后，请通过以下命令检查 docker 服务是否处于启动状态或者启动 docker 服务，如果显示类似如下图片中`active(running)`，则表示 docker 服务已经启动。
+<!-- 请通过以下命令检查 docker 服务是否处于启动状态或者启动 docker 服务，如果显示类似如下图片中`active(running)`，则表示 docker 服务已经启动。
 
 ```bash
 systemctl status docker  #查看 docker 状态
 systemctl start docker   #启动 docker 服务
 ```
-![确认 docker 服务成功启动](../images/checkdocker.jpg)
+![确认 docker 服务成功启动](../images/checkdocker.jpg) -->
 
-你也可以通过docker的图形化界面来确认docker服务的启动状态
+在同学们安装好 Docker 之后，可以通过docker的图形化界面来确认docker服务的启动状态
 
 ![确认 docker 服务成功启动(gui)](../images/dockergui.png)
 
@@ -241,14 +241,17 @@ pwd            # 查看当前路径
 成功后，`vscode` 的左侧便会出现一个如下图所示的文件资源管理器，方便同学们进行图形界面的操作。  
 
 ![文件资源管理器的图形界面](../images/docgui.jpg)  
-接下来，为避免软件版本冲突以及影响同学们的系统环境，推荐同学们在 docker 内进行本实验环境配置。所以需要同学们在终端输入如下命令中的一条查看 docker 服务状态或者启动 docker 服务
+接下来，为避免软件版本冲突以及影响同学们的系统环境，推荐同学们在 docker 内进行本实验环境配置。
+
+<!-- 所以需要同学们在终端输入如下命令中的一条查看 docker 服务状态或者启动 docker 服务
 ```bash
 systemctl status docker  #查看 docker 状态
 systemctl start docker   #启动 docker 服务
 ```
 
-![确认 docker 服务成功启动](../images/checkdocker.jpg)
-你也可以通过docker desktop来确认docker服务的启动状态
+![确认 docker 服务成功启动](../images/checkdocker.jpg) -->
+
+你可以通过docker desktop来确认docker服务的启动状态
 ![确认 docker 服务成功启动(gui)](../images/dockergui.png)
 如果确认 docker 已经是运行状态则可以进行下一步操作。在命令行窗口输入以下命令进行 ubuntu 镜像的拉取。
 ```bash
