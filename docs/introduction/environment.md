@@ -210,8 +210,11 @@ git clone git@github.com:arcsysu/SYsU-lang2.git
 
 <!-- ![showlog](../images/envok.png) -->
 ## 可选方案 2 ⸺ 命令行手动配置（使用 Docker）
+首先请同学们启动 vscode 软件，并安装 `Dev Container` 插件
 
-首先请同学们启动 vscode 软件，点击下图所示的按钮新建一个命令行窗口。
+![alt text](../images/devcontainer_install.png)
+
+点击下图所示的按钮新建一个命令行终端。
 
 ![新建命令行窗口](../images/openterminal.png)
 
@@ -220,27 +223,7 @@ git clone git@github.com:arcsysu/SYsU-lang2.git
 ```bash
 wsl
 ```
-然后，我们需要将实验远程仓库拉取到本地。请同学们直接在命令行输入以下命令，以下代码中的`https://mirror.ghproxy.com/`是一个github 代理，方便解决可能存在的 github 访问不稳定问题。当命令行显示如下`100%  xx done`字样时代表仓库拉取已经完成。此时在命令行输入 `ls` 命令可以看到`SYsU-lang2`实验代码文件夹。  
 
-```bash
-git clone https://mirror.ghproxy.com/https://github.com/arcsysu/SYsU-lang2
-```
-![仓库拉取示意](../images/gitrepclone.png)
-
-请同学们输入以下命令进入实验代码文件夹，并且查看实验代码文件夹路径。  
-```bash
-cd SYsU-lang2  # 进入文件夹
-pwd            # 查看当前路径
-```
-![仓库拉取示意](../images/getloc2.png)
-
-之后，请在 `vscode` 的左侧界面点击 `open folder`，并选择前文中我们通过 `pwd` 命令获取的路径
-
-![打开文件夹界面](../images/openfolder.png)
-
-成功后，`vscode` 的左侧便会出现一个如下图所示的文件资源管理器，方便同学们进行图形界面的操作。  
-
-![文件资源管理器的图形界面](../images/docgui.jpg)  
 接下来，为避免软件版本冲突以及影响同学们的系统环境，推荐同学们在 docker 内进行本实验环境配置。
 
 <!-- 所以需要同学们在终端输入如下命令中的一条查看 docker 服务状态或者启动 docker 服务
@@ -265,20 +248,23 @@ docker pull ubuntu:22.04
 在我此时的例子中，我的代码文件所在文件夹为 `/Users/nickchen/SYsU-lang2`。有了这个文件路径之后就可以开始将前面拉取的镜像实例化为一个容器了。请大家在命令行输入如下命令  
 注意⚠️：将里面的 `/Users/nickchen/SYsU-lang2` 改为你先前设置的仓库的路径（即上文`pwd`命令得到的路径）
 ```bash
-docker run -it --name labdemo -v /Users/nickchen/SYsU-lang2:/workspace   ubuntu:22.04
+docker run -it --name labdemo ubuntu:22.04
 # docker run是运行 Docker 容器的命令
 # -it 是两个选项的结合。-i 表示交互式操作，允许用户与容器进行交互，-t 表示分配一个伪终端（pseudo-TTY）。这使得用户可以在容器内执行命令，并且能够与命令行进行交互。
 # --name labdemo表示将运行的容器命名为 labdemo
-# -v /your/path/to/SYsU-lang2:/workspace 代表将宿主机的 /your/path/to/SYsU-lang2 路径映射到 docker 容器内的 /workspace 路径
 ```
-当同学们在命令行看到`root@xx`等字样时意味着成功将镜像实例化为了容器，此时输入`cd workspace`即可成功进入实验代码文件夹。
+当同学们在命令行看到`root@xx`等字样时意味着成功将镜像实例化为了容器
 
 ![成功进入容器](../images/entercontainer.png)
 
-在成功进入 `docker` 容器之后同学们需要在容器内进行实验环境的搭建，安装一些实验必需的应用软件。首先需要同学们输入以下命令安装以下软件：
+之后，请使用 `Dev Container` 插件将 vscode 连入容器，如果遇到“容器未在运行”的问题，在弹出窗口或者 `docker desktop` 启动容器便可。
+
+![alt text](../images/open_container.png)
+
+在成功使用 `Dev Container` 连入 `docker` 容器之后，同学们需要在容器内进行实验环境的搭建，安装一些实验必需的应用软件。首先需要同学们在当前窗口新建终端，并输入以下命令安装必要的软件：
 ```bash
-apt-get update # 更新软件包列表信息
-apt-get install -y ninja-build clang-14 wget cmake xz-utils unzip g++ lld flex bison # 下载软件
+apt update # 更新软件包列表信息
+apt install -y ninja-build clang-14 wget cmake xz-utils unzip g++ lld flex bison # 下载软件
 
 #以下是上述软件的简要介绍   
 # ninja-build    一个用于加速软件编译速度的软件   
@@ -293,12 +279,35 @@ apt-get install -y ninja-build clang-14 wget cmake xz-utils unzip g++ lld flex b
 # bison          文法分析器构造工具   
 ```
 
-在上述软件成功安装之后，请大家输入以下命令进行另外两个特殊软件的安装,两种软件在对应文件夹下都有助教提前写好的自动化编译安装脚本。  
+然后，我们需要将实验远程仓库拉取到本地。请同学们在当前窗口新建命令行终端，并在终端输入以下命令。当命令行显示如下`100%  xx done`字样时代表仓库拉取已经完成。此时在命令行输入 `ls` 命令可以看到`SYsU-lang2`实验代码文件夹。  
 
+```bash
+git clone https://mirror.ghproxy.com/https://github.com/arcsysu/SYsU-lang2
+
+# `https://mirror.ghproxy.com/`是一个github 代理，方便解决可能存在的 github 访问不稳定问题
+```
+![仓库拉取示意](../images/gitrepclone.png)
+
+请同学们输入以下命令进入实验代码仓库，并且查看实验代码仓库路径。  
+```bash
+cd SYsU-lang2  # 进入文件夹
+pwd            # 查看当前路径
+```
+![仓库拉取示意](../images/getloc2.png)
+<!-- 
+之后，请在 `vscode` 的左侧界面点击 `open folder`，并选择前文中我们通过 `pwd` 命令获取的路径
+
+![打开文件夹界面](../images/openfolder.png)
+
+成功后，`vscode` 的左侧便会出现一个如下图所示的文件资源管理器，方便同学们进行图形界面的操作。  
+
+![文件资源管理器的图形界面](../images/docgui.jpg)   -->
+
+在上述软件成功安装之后，请大家输入以下命令进行另外两个特殊软件的安装,两种软件在对应文件夹下都有助教提前写好的自动化编译安装脚本。请确保你终端当前的目录在实验代码仓库根目录下。  
 
 首先是llvm软件
 ```bash
-cd /workspace/llvm && bash install.sh
+cd llvm && bash install.sh
 ```
 成功安装后的界面如下图所示,
 
@@ -306,7 +315,8 @@ cd /workspace/llvm && bash install.sh
 
 接下来是 antlr 软件的安装，请大家在命令行输入如下命令。
 ```bash
-cd /workspace/antlr && bash install.sh
+cd ../    # 回到实验代码仓库根目录(可选)
+cd antlr && bash install.sh
 ```
 成功编译安装后的界面如下图所示,
 
@@ -322,7 +332,7 @@ cmake llvm -B build -G Ninja\
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=$(realpath install) \
   -DLLVM_ENABLE_PROJECTS="clang" \
-  -DLLVM_TARGETS_TO_BUILD="X86" \  # 如果你使用的是Apple Silicon，则需改为 "AArch64"
+  -DLLVM_TARGETS_TO_BUILD="X86" \  
   -DLLVM_USE_LINKER=lld \
   -DLLVM_INCLUDE_BENCHMARKS=OFF \
   -DLLVM_INCLUDE_EXAMPLES=OFF \
@@ -331,13 +341,11 @@ cmake --build build --target install
 ```
 
 
-2. 在Docker Desktop中为你的容器增加Memory limit/Swap，并重新编译
+2. 在Docker Desktop中为你的容器增加Memory limit/Swap，并重新编译。如果你使用的是Windows+wsl，方法可能会有所不同。详情可参阅docker内的提示。
 
 ![alt text](../images/docker_setting.png)
 
-
-
-在以上 linux 系统软件安装完成之后，我们还需要安装一系列 vscode 插件，以便更方便地进行实验代码的编写。请同学们按照以下所示的方法，打开 vscode 的插件安装界面。
+在以上 linux 系统软件安装完成之后，我们还需要在容器内安装一系列 vscode 插件，以便更方便地进行实验代码的编写。请同学们按照以下所示的方法，打开 vscode 的插件安装界面。
 
 ![打开插件界面](../images/plugindemo.jpg)
 
@@ -423,13 +431,13 @@ MacOS:
 ```bash
 cd /your/path/to/SYsU-lang2/llvm
 
-wget https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang+llvm-17.0.6-arm64-apple-darwin22.0.tar.xz # 使用Apple Silicon的机器
+wget https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang+llvm-17.0.6-arm64-apple-darwin22.0.tar.xz # 根据你的架构选择，这里是使用Apple Silicon的机器
 
 tar -xJvf clang+llvm-17.0.6-arm64-apple-darwin22.0.tar.xz # 解压
 
-rm -rf install
+rm -rf install # 确保你的 /llvm 目录下没有其它名为 install 的文件夹
 
-mv clang+llvm-17.0.6-arm64-apple-darwin22.0 install # 重命名,这一步很关键
+mv clang+llvm-17.0.6-arm64-apple-darwin22.0 install # 重命名,这一步非常关键
 ```
 
 Linux
@@ -482,4 +490,4 @@ cd /your/path/to/SYsU-lang2/antlr && bash install.sh
 解决方法：将 `task/CMakeLists.txt`中第2行的`find_package(BISON 3.8)`改为`find_package(BISON)`
 
 2. MacOS如何安装Xcode命令行工具？  
-解决方法：你可以在 app store 中直接安装Xcode，同时也会安装Xcode命令行工具。
+解决方法：在 app store 中直接安装Xcode，同时也会安装Xcode命令行工具。
