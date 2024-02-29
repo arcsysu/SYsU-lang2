@@ -429,7 +429,7 @@ tar -xJvf clang+llvm-17.0.6-arm64-apple-darwin22.0.tar.xz # 解压
 
 rm -rf install
 
-mv clang+llvm-17.0.6-arm64-apple-darwin22.0 install # 重命名
+mv clang+llvm-17.0.6-arm64-apple-darwin22.0 install # 重命名,这一步很关键
 ```
 
 Linux
