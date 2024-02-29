@@ -50,7 +50,7 @@ https://github.com/arcsysu/SYsU-lang/wiki/%E9%A1%BE%E5%AE%87%E6%B5%A9%E5%8A%A9%E
 
 ## 任务描述
 
-在本实验中，
+在本实验中，我们的任务
 
 ## 总体思路(main.cpp)
 
