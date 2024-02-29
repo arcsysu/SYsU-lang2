@@ -292,7 +292,7 @@ cd /workspace/antlr && bash install.sh
 
 注意⚠️：因为编译是计算密集型任务，此步骤耗时可能较长，如果你不能成功编译，你可以尝试以下的方法：
 
-1. 重新编译，输入以下指令以重新编译  
+1. 重新编译，输入以下指令以重新编译(以llvm为例)  
 
 ```bash  
 cmake --build build --target clean
@@ -315,7 +315,7 @@ cmake --build build --target install
 
 
 
-在以上 linux 系统软件安装完成之后，我们还需要安装一系列 vscode 插件，以便更方便地进行实验代码的编写。请同学们按照以下同学所示的方法，打开 vscode 的插件安装界面。
+在以上 linux 系统软件安装完成之后，我们还需要安装一系列 vscode 插件，以便更方便地进行实验代码的编写。请同学们按照以下所示的方法，打开 vscode 的插件安装界面。
 
 ![打开插件界面](../images/plugindemo.jpg)
 
@@ -334,4 +334,130 @@ cmake --build build --target install
 当前面所提到的 linux 系统软件以及 vscode 插件全部安装完成后，就完成了手动配置实验环境。
 
 ## 可选方案 3 ⸺ 命令行手动配置（不使用 Docker）  
-施工中👷……
+前言：如果处于以下的情况，你可以尝试此配置方案
+1. 你遇到了难以解决的问题，以上方案都无法配置实验环境
+2. 你希望能在操作系统为 Linux/MacOS 的机器上原生运行该实验
+
+该方案假定你对 Linux/Unix 系统基本操作，软件安装，cmake使用等方面有一定了解，并且要求你的操作系统为 Linux/MacOS 。如果你遇到任何问题，你可以先尝试自己解决，再来向助教团队求助。以下教程的示例均以 MacOS 为例，并会注明 Linux 上的等效操作。  
+
+注意⚠️：无论你使用什么方法配置实验环境，你都需要保证你提交的代码能在评测机上正确运行。
+
+前置要求：
+1. 操作系统：Linux/MacOS
+2. VSCode
+3. Git
+4. Xcode命令行工具 (MacOS)
+
+目录：
+1. 拉取实验代码仓库
+2. 使用包管理器下载安装必备软件
+3. 编译安装llvm、antlr，或直接使用llvm提供的二进制包
+4. 配置vscode和cmake  
+5. 常见问题
+
+### 拉取实验代码仓库  
+在你的终端中输入以下指令以拉取实验代码仓库,并通过vscode打开仓库文件夹  
+
+```bash
+git clone https://mirror.ghproxy.com/https://github.com/arcsysu/SYsU-lang2
+code SYsU-lang2
+```
+
+![拉取仓库并打开vsc](../images/pull&code.png)
+成功打开vscode后将如下所示
+![vsc菜单](../images/codemenu.png)
+
+### 使用包管理器下载安装必备软件  
+在vscode中打开终端，使用你的包管理器下载以下软件，在Linux上的包管理器通常是 `apt` ，这里我使用的是MacOS上常用的 `brew`
+
+```bash
+# MacOS
+brew install ninja wget cmake flex bison xz # 下载软件
+
+# Linux
+apt update # 更新软件包列表信息
+apt install -y ninja-build clang-14 wget cmake xz-utils unzip g++ lld flex bison # 下载软件
+
+#以下是上述软件的简要介绍   
+# ninja          一个用于加速软件编译速度的软件   
+# clang-14       安装实验必需的一个编译器   
+# wget           一个Linux 系统下的下载软件，类似迅雷在 win 的地位   
+# cmake          一个开源的跨平台的构建工具，用于自动生成各种不同编译环境下的构建脚本，帮助管理和构建 C/C++ 项目。   
+# xz-utils       一个解压软件   
+# unzip          正如其名   
+# g++            实验必需的编译器   
+# lld            实验必需的链接器   
+# flex           词法分析器构造工具   
+# bison          文法分析器构造工具   
+```
+
+### 编译安装llvm、antlr，或直接使用llvm提供的二进制包
+在上述软件成功安装之后，请大家输入以下命令进行另外两个特殊软件的安装,两种软件在对应文件夹下都有助教提前写好的自动化编译安装脚本。但由于MacOS不支持 `lld` 链接器，直接使用cmake编译安装llvm源文件会报错，这里推荐直接使用官网提供的二进制包。  
+
+注意⚠️：将 `/your/path/to/SYsU-lang2` 改为你的仓库目录所在路径
+#### llvm
+MacOS: 
+
+```bash
+cd /your/path/to/SYsU-lang2/llvm
+
+wget https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang+llvm-17.0.6-arm64-apple-darwin22.0.tar.xz # 使用Apple Silicon的机器
+
+tar -xJvf clang+llvm-17.0.6-arm64-apple-darwin22.0.tar.xz # 解压
+
+rm -rf install
+
+mv clang+llvm-17.0.6-arm64-apple-darwin22.0 install # 重命名
+```
+
+Linux
+```bash
+cd /your/path/to/SYsU-lang2/llvm && bash install.sh
+```
+Linux成功安装后的界面如下图所示,
+
+![Linux成功安装llvm](../images/llvm_success.png)
+
+接下来是 antlr 软件的安装，请大家在命令行输入如下命令。
+
+MacOS & Linux
+
+```bash
+cd /your/path/to/SYsU-lang2/antlr && bash install.sh
+```
+成功编译安装后的界面如下图所示,
+
+![alt text](../images/antlr_success.png)
+
+### 配置vscode和cmake  
+
+在以上软件安装完成之后，我们还需要安装一系列 vscode 插件，以便更方便地进行实验代码的编写。请同学们按照以下所示的方法，打开 vscode 的插件安装界面。
+
+![打开插件界面](../images/plugindemo.jpg)
+
+需要安装的 vscode 插件名字列表如下：
+- C/C++
+- C/C++ extension pack
+- CMake
+- CMake Tools
+- ANTLR4 grammar syntax support
+- Yash
+
+你也可以打开筛选以快速找到这些插件  
+
+![打开筛选](../images/WechatIMG1450.jpg)  
+
+当CMake Tools插件安装完成后，点击删除缓存并重新配置，当看到 “xx done" 字样时，你就成功完成配置了🎉
+![alt text](../images/cmaketool.png)
+
+![alt text](../images/done.png)
+
+### 常见问题
+1. 在MacOS下，cmake 找不到 brew 安装的 bison  
+
+![alt text](../images/cantfindbison.png)  
+
+解决方法：将 `task/CMakeLists.txt`中第2行的`find_package(BISON 3.8)`改为`find_package(BISON)`
+
+2. MacOS如何安装Xcode命令行工具？  
+解决方法：你可以在 app store 中直接安装Xcode，同时也会安装Xcode命令行工具。
