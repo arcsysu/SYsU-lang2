@@ -11,7 +11,7 @@
    `-- asg.hpp
 ```
 
-## asg.hpp 代码介绍
+## Asg 代码介绍
 
 `asg.hpp` 文件定义了一个用于表示抽象语法图（`Abstract Syntax Graph`，简称 `ASG`）的数据结构，这是在编译器设计中用于表示源代码结构的一种高级表示形式。这个文件中定义的结构和类用于表示编程语言的不同构件，如类型、表达式、语句等。
 
@@ -515,3 +515,64 @@ Typing::operator()(CallExpr* obj)...
 `Typing::operator()(BinaryExpr* obj)` 处理二元表达式。首先递归处理左右子表达式，进行必要的类型提升和右值转换。然后根据二元操作符的种类对表达式的类型和类别进行特定的处理。
 
 每个处理方法都遵循相似的模式：首先确认表达式的有效性（通过断言），然后根据表达式的特定逻辑对类型和值进行推断和调整。这些方法的目的是确保表达式在语法树中具有正确的类型信息，这对于后续的代码生成或其他分析任务至关重要。
+
+## Asg2Json 代码介绍
+这一部分包含 `Asg2Json.cpp` 和 `Asg2Json.hpp` 两个代码文件，这两个文件负责实现将`ASG`（抽象语法图）转换为`JSON`格式的功能。这个过程允许将编译器内部的复杂结构以一种标准和易于理解的格式输出，便于后续的处理或分析。
+首先是`Asg2Json.hpp`，这是`Asg2Json`类的声明文件。它声明了一个类，该类包含一系列方法，用于将不同类型的`ASG`节点（如表达式、声明、语句等）转换为`JSON`对象。这里的`JSON`对象使用的是`LLVM`库中的`llvm::json::Object`，这是`LLVM`提供的`JSON`处理工具的一部分。
+```c++
+#pragma once
+
+#include "asg.hpp"
+#include <llvm/Support/JSON.h>
+
+namespace asg {
+
+namespace json = llvm::json;
+
+class Asg2Json
+{
+public:
+  json::Object operator()(TranslationUnit& tu);
+
+private:
+  // 类型转换方法
+  std::string operator()(TypeExpr* texp);
+  std::string operator()(const Type& type);
+
+  // 表达式转换方法
+  json::Object operator()(Expr* obj);
+  json::Object operator()(IntegerLiteral* obj);
+  // 更多表达式类型...
+
+  // 语句转换方法
+  json::Object operator()(Stmt* obj);
+  // 更多语句类型...
+
+  // 声明转换方法
+  json::Object operator()(Decl* obj);
+  // 更多声明类型...
+};
+}
+```
+然后是`Asg2Json.cpp`，这个文件实现了`Asg2Json.hpp`中声明的`Asg2Json`类的方法。每个方法负责将特定类型的`ASG`节点转换为相应的`JSON`表示。下面是一些关键方法的详细解释：
+```c++
+operator()(TranslationUnit& tu)
+// 这个方法接受一个TranslationUnit（翻译单元，也就是整个源文件的顶层结构）作为输入，
+// 然后遍历其中的所有声明，将它们转换为JSON格式，并返回一个代表整个翻译单元的JSON对象。
+
+operator()(TypeExpr* texp) 和 operator()(const Type& type)
+//这两个方法负责将ASG中的类型表达式和类型信息转换为字符串形式的JSON表示。
+//这对于输出变量和表达式的类型信息非常有用。
+
+operator()(Expr* obj)
+//这个方法会根据表达式的具体类型（如IntegerLiteral、StringLiteral、BinaryExpr等）
+//调用相应的转换方法，生成代表该表达式的JSON对象。
+
+operator()(Stmt* obj)
+//类似于表达式的处理方法，这个方法会处理不同类型的语句（如IfStmt、WhileStmt等），
+//并将它们转换为JSON对象。
+
+operator()(Decl* obj)
+//这个方法负责处理所有类型的声明（如变量声明、函数声明），并将它们转换为JSON对象。
+```
+在实现这些方法时，会利用`llvm::json`命名空间下的功能，如`json::Object`和`json::Array`，来构建结构化的`JSON`数据。每个方法都会根据`ASG`节点的特性和结构，填充相应的`JSON`字段，如`kind`字段标识节点类型，以及其他表示节点具体信息的字段（例如表达式的值、变量的名称等）。
