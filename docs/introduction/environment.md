@@ -264,7 +264,7 @@ docker run -it --name labdemo ubuntu:22.04
 在成功使用 `Dev Container` 连入 `docker` 容器之后，同学们需要在容器内进行实验环境的搭建，安装一些实验必需的应用软件。首先需要同学们在当前窗口新建终端，并输入以下命令安装必要的软件：
 ```bash
 apt update # 更新软件包列表信息
-apt install -y ninja-build clang-14 wget cmake xz-utils unzip g++ lld flex bison # 下载软件
+apt install -y ninja-build clang-14 wget cmake xz-utils unzip g++ lld flex bison git # 下载软件
 
 #以下是上述软件的简要介绍   
 # ninja-build    一个用于加速软件编译速度的软件   
@@ -406,7 +406,7 @@ brew install ninja wget cmake flex bison xz # 下载软件
 
 # Linux
 apt update # 更新软件包列表信息
-apt install -y ninja-build clang-14 wget cmake xz-utils unzip g++ lld flex bison # 下载软件
+apt install -y ninja-build clang-14 wget cmake xz-utils unzip g++ lld flex bison git # 下载软件
 
 #以下是上述软件的简要介绍   
 # ninja          一个用于加速软件编译速度的软件   
