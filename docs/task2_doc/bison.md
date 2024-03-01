@@ -51,7 +51,13 @@ https://github.com/arcsysu/SYsU-lang/wiki/%E9%A1%BE%E5%AE%87%E6%B5%A9%E5%8A%A9%E
 
 ## 任务描述
 
-在本实验中，我们的任务
+在本实验中，我们的任务是进行语法分析，然后生成json文件，例如同学们可以看下其中的一个文件：`/workspaces/SYsU-lang2/build/test/task2/functional-0/000_main.sysu.c/answer.json`
+该json文件是clang
+
+
+文件截图？
+
+
 
 ## 总体思路(main.cpp)
 
@@ -59,7 +65,7 @@ https://github.com/arcsysu/SYsU-lang/wiki/%E9%A1%BE%E5%AE%87%E6%B5%A9%E5%8A%A9%E
 
 在语法分析中，bison的 `yyparse`中有下面的逻辑：
 
-- 由于实验2以复活版本的进行实验，因此输入的task1-answer，同学们可以看下其中的一个文件：`/workspaces/SYsU-lang/build/test/task1/functional-0/000_main.sysu.c/answer.txt`，如下图所示
+- 由于实验2以复活版本的进行实验，因此输入的是task1-answer，同学们可以看下其中的一个文件：`/workspaces/SYsU-lang2/build/test/task1/functional-0/000_main.sysu.c/answer.txt`，如下图所示
 
 ![task1-answer](../images/bison/task1-answer.png)
 
