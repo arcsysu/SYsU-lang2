@@ -49,15 +49,83 @@ https://github.com/arcsysu/SYsU-lang/wiki/%E9%A1%BE%E5%AE%87%E6%B5%A9%E5%8A%A9%E
 看完之后，其实能够理解到ASG就是一种可以储存代码中的各个不同结构（比如，表达式，句子，声明）的一堆结构体就可以了。
 我们使用ASG结构并不是必须的，只是为了在中间进行储存这些文法结构，从而方便地进行之后的json打印，这只是一种代码设计的方案。
 
+### 文法
+本实验采用的文法是SysY语言（编译器比赛中所定义的语言用的文法），其文法如下。
+目前提供的代码中的文法可能与下述给出的有细微不相同，但是表达的是一个意思，这无伤大雅，同学们可以作参考。
+```
+start         ::= CompUnit; // start为开始符号
+CompUnit      ::= [CompUnit] (Decl | FuncDef);
+
+Decl          ::= ConstDecl | VarDecl;
+ConstDecl     ::= "const" BType ConstDef {"," ConstDef} ";";
+BType         ::= "int" | "char" | "long long";
+ConstDef      ::= IDENT {"[" ConstExp "]"} "=" ConstInitVal;
+ConstInitVal  ::= ConstExp | "{" [ConstInitVal {"," ConstInitVal}] "}";
+VarDecl       ::= BType VarDef {"," VarDef} ";";
+VarDef        ::= IDENT {"[" ConstExp "]"}
+                | IDENT {"[" ConstExp "]"} "=" InitVal;
+InitVal       ::= Exp | "{" [InitVal {"," InitVal}] "}";
+
+FuncDef       ::= FuncType IDENT "(" [FuncFParams] ")" Block;
+FuncType      ::= "void" | "int";
+FuncFParams   ::= FuncFParam {"," FuncFParam};
+FuncFParam    ::= BType IDENT ["[" "]" {"[" ConstExp "]"}];
+
+Block         ::= "{" {BlockItem} "}";
+BlockItem     ::= Decl | Stmt;
+Stmt          ::= LVal "=" Exp ";"
+                | [Exp] ";"
+                | Block
+                | "if" "(" Exp ")" Stmt ["else" Stmt]
+                | "while" "(" Exp ")" Stmt
+                | "break" ";"
+                | "continue" ";"
+                | "return" [Exp] ";";
+                | "do" "{" Stmt "}" "while" "(" Stmt ")" ";"
+
+Exp           ::= LOrExp;
+LVal          ::= IDENT {"[" Exp "]"};
+PrimaryExp    ::= "(" Exp ")" | LVal | Number;
+Number        ::= INT_CONST;
+UnaryExp      ::= PrimaryExp | IDENT "(" [FuncRParams] ")" | UnaryOp UnaryExp;
+UnaryOp       ::= "+" | "-" | "!";
+FuncRParams   ::= Exp {"," Exp};
+MulExp        ::= UnaryExp | MulExp ("*" | "/" | "%") UnaryExp;
+AddExp        ::= MulExp | AddExp ("+" | "-") MulExp;
+RelExp        ::= AddExp | RelExp ("<" | ">" | "<=" | ">=") AddExp;
+EqExp         ::= RelExp | EqExp ("==" | "!=") RelExp;
+LAndExp       ::= EqExp | LAndExp "&&" EqExp;
+LOrExp        ::= LAndExp | LOrExp "||" LAndExp;
+ConstExp      ::= Exp;
+```
+如果需要SysY语言更为详细的文法解释和定义，可以参考该链接：https://gitlab.eduxiji.net/nscscc/compiler2021/-/blob/master/SysY%E8%AF%AD%E8%A8%80%E5%AE%9A%E4%B9%89.pdf
+
 ## 任务描述
 
 在本实验中，我们的任务是进行语法分析，然后生成json文件，例如同学们可以看下其中的一个文件：`/workspaces/SYsU-lang2/build/test/task2/functional-0/000_main.sysu.c/answer.json`
-该json文件是clang
+该json文件是clang parse生成的标准答案，而我们也需要生成这样的答案。
+![alt text](../images/bison/task2-answer.png)
+下面对这个文件进行一些说明：
+这个文件太长、不太好看结构，但是所幸vscode可以很简便的看到结构，我们采取下述方式:将鼠标移到该json文件中，其下面红框部分就会显示这个文件的结构，从而可以很方便的进行整体查看该结构。
+![alt text](../images/bison/task2-json.png)
+以这个文件为例，其最外层的结构的kind（种类）为TranslationUnitDecl，然后其有个属性为inner，包含其余6个部分（0-5）：前5个都是TypedefDecl（这个不用管），最后一个是FunctionDecl，将其进行展开继续查看。
+![alt text](../images/bison/task2-answer-exam.png)
+由该文件，可以得到其整体结构为：
+```bash
+|-- TranslationUnitDecl
+   |-- 多个TypedefDecl（不用管）
+   |-- FunctionDecl
+      |-- CompoundStmt
+         |-- ReturnStmt
+            |-- IntegerLiteral
+```
 
 
-文件截图？
-
-
+### 评分标准
+同学们查看json文件，会发现上述每个节点里面包含了非常多的属性，除去TypedefDecl不用管之外，我们的评分以属性打印为准，具体如下：
+- 是否提取出正确的 "kind"、"name"、"value" 键值，不含 "InitListExpr"（60 分）
+- 是否提取出正确的 "type" 键值及是否构造正确的 "InitListExpr" 生成树（30 分）。
+- 是否提取出其它非 "id" 以外的键值（10 分）。
 
 ## 总体思路(main.cpp)
 
@@ -69,15 +137,15 @@ https://github.com/arcsysu/SYsU-lang/wiki/%E9%A1%BE%E5%AE%87%E6%B5%A9%E5%8A%A9%E
 
 ![task1-answer](../images/bison/task1-answer.png)
 
-- bison会读取词法分析lex中的传入的token（lex每读取一个，就会传给bison进行语法分析），因此将上述文件输入到实验2中，此时词法分析lex相关部分代码比起实验一会发生变化，不过这一部分的代码目前已经写好了，同学们可以自行查看。
-  （其逻辑是：相比于实验一的输入直接是源文件从而进行相关的各个token的匹配，实验二复活版本将匹配上述输入文件的每一行，然后对每一行进行处理，提取出每行的第一个单词（tokenId）和每行的第二个单词中的引号内容（tokenValue）。例如，以一行为例，识别出的token：其tokenId为int，其tokenValue为引号内的内容，也为int。）
-- bison拿到该token后，首先进行文法的匹配，进行移进归约操作，而后在每个移进归约的过程中完成用户自定义的语义动作，在本实验中，我们是生成并填充ASG结构。
+- `bison`会读取词法分析`lex`中的传入的`token`（`lex`每读取一个，就会传给`bison`进行语法分析），因此将上述文件输入到实验2中，此时词法分析`lex`相关部分代码比起实验一会发生变化，不过这一部分的代码目前已经写好了，同学们可以自行查看。
+  （其逻辑是：相比于实验一的输入直接是源文件从而进行相关的各个`token`的匹配，实验二复活版本将匹配上述输入文件的每一行，然后对每一行进行处理，提取出每行的第一个单词（`tokenId`）和每行的第二个单词中的引号内容（`tokenValue`）。例如，以一行为例，识别出的`token`：其`tokenId`为`int`，其`tokenValue`为引号内的内容，也为`int`。）
+- `bison`拿到该`token`后，首先进行文法的匹配，进行移进归约操作，而后在每个移进归约的过程中完成用户自定义的语义动作，在本实验中，我们是生成并填充ASG结构。
 
 在类型检查中，`typing`则将对生成的ASG中的每一个结构进行类型检查，如果不通过该类型检查，程序就会停止。同学可以利用这个方便地进行查错，判断自己到底是哪个类型没有写对。
 
 在ASG生成json文件中，`asg2json`将在yyparse中生成并通过类型检查的ASG结构进行输出并打印。
 
-而类型检查和ASG生成json文件的部分，已经进行了实现，同学们只要负责**语法分析中的文法撰写和语义动作撰写(填充ASG)**即可。
+而类型检查和ASG生成json文件的部分，已经进行了基本的实现，同学们只要负责**语法分析中的文法撰写和语义动作撰写(填充ASG)**即可。（如果想要拿到评分标准的第三档，可能需要自行在ASG中添加结构，并在asg2json部分进行打印，不过当同学们完成评分标准的前两档，已经对ASG和asg2json有全面的了解，因此是不太难的事情。如有任何困难，欢迎问助教。）
 
 ## 文件结构说明
 
