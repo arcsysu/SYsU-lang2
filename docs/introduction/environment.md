@@ -1,5 +1,5 @@
 # 环境配置
-在本小节中，我们会带领同学们完成实验环境配置。为了尽可能地还原同学们环境配置的过程，这里采用一台从来没有进行过开发的新电脑进行演示。
+在本小节中，我们会带领同学们完成实验环境配置。为了尽可能地还原同学们环境配置的过程，这里采用一台从来没有进行过开发的新电脑进行演示。由于本实验需要配置 Docker 容器以及实验相关的编译工具，建议同学们预留`20 GB`的硬盘空间，以便下载安装所需软件。若硬盘空间不足，建议同学们选择[可选方案 2](#可选方案-2-⸺-命令行手动配置使用-docker)进行配置
 
 
 
@@ -154,10 +154,9 @@ docker rmi sumuzhe317/sysu-lang:latest  # 删除本地缓存的实验镜像
 docker rmi vsc-volume-bootstrap:latest  # 删除本地缓存的 bootstrap 镜像
 
 # 从校内镜像源重新拉取镜像，并对镜像重命名
-docker pull docker.mirrors.matrix.moe/sumuzhe317/SYsU-lang:latest &&
-docker pull docker.mirrors.matrix.moe/vsc-volume-bootstrap:latest && 
+docker pull docker.mirrors.matrix.moe/sumuzhe317/sysu-lang:latest &&
 docker tag docker.mirrors.matrix.moe/sumuzhe317/sysu-lang:latest sumuzhe317/sysu-lang:latest &&
-docker tag docker.mirrors.matrix.moe/vsc-volume-bootstrap:latest vsc-volume-bootstrap:latest
+docker rmi docker.mirrors.matrix.moe/sumuzhe317/sysu-lang:latest
 
 # 若无法连接至校内镜像源，可使用 Docker 代理镜像源进行拉取
 docker pull dockerproxy.com/sumuzhe317/sysu-lang:latest &&
