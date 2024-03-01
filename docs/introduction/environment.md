@@ -1,5 +1,5 @@
 # 环境配置
-在本小节中，我们会带领同学们完成实验环境配置。为了尽可能地还原同学们环境配置的过程，这里采用一台从来没有进行过开发的新电脑进行演示。
+在本小节中，我们会带领同学们完成实验环境配置。为了尽可能地还原同学们环境配置的过程，这里采用一台从来没有进行过开发的新电脑进行演示。由于本实验需要配置 Docker 容器以及实验相关的编译工具，建议同学们预留`20 GB`的硬盘空间，以便下载安装所需软件。若硬盘空间不足，建议同学们选择[可选方案 3](#可选方案-3--命令行手动配置不使用-docker)进行配置
 
 
 
@@ -154,10 +154,9 @@ docker rmi sumuzhe317/sysu-lang:latest  # 删除本地缓存的实验镜像
 docker rmi vsc-volume-bootstrap:latest  # 删除本地缓存的 bootstrap 镜像
 
 # 从校内镜像源重新拉取镜像，并对镜像重命名
-docker pull docker.mirrors.matrix.moe/sumuzhe317/SYsU-lang:latest &&
-docker pull docker.mirrors.matrix.moe/vsc-volume-bootstrap:latest && 
+docker pull docker.mirrors.matrix.moe/sumuzhe317/sysu-lang:latest &&
 docker tag docker.mirrors.matrix.moe/sumuzhe317/sysu-lang:latest sumuzhe317/sysu-lang:latest &&
-docker tag docker.mirrors.matrix.moe/vsc-volume-bootstrap:latest vsc-volume-bootstrap:latest
+docker rmi docker.mirrors.matrix.moe/sumuzhe317/sysu-lang:latest
 
 # 若无法连接至校内镜像源，可使用 Docker 代理镜像源进行拉取
 docker pull dockerproxy.com/sumuzhe317/sysu-lang:latest &&
@@ -264,7 +263,7 @@ docker run -it --name labdemo ubuntu:22.04
 在成功使用 `Dev Container` 连入 `docker` 容器之后，同学们需要在容器内进行实验环境的搭建，安装一些实验必需的应用软件。首先需要同学们在当前窗口新建终端，并输入以下命令安装必要的软件：
 ```bash
 apt update # 更新软件包列表信息
-apt install -y ninja-build clang-14 wget cmake xz-utils unzip g++ lld flex bison # 下载软件
+apt install -y ninja-build clang-14 wget cmake xz-utils unzip g++ lld flex bison git # 下载软件
 
 #以下是上述软件的简要介绍   
 # ninja-build    一个用于加速软件编译速度的软件   
@@ -406,7 +405,7 @@ brew install ninja wget cmake flex bison xz # 下载软件
 
 # Linux
 apt update # 更新软件包列表信息
-apt install -y ninja-build clang-14 wget cmake xz-utils unzip g++ lld flex bison # 下载软件
+apt install -y ninja-build clang-14 wget cmake xz-utils unzip g++ lld flex bison git # 下载软件
 
 #以下是上述软件的简要介绍   
 # ninja          一个用于加速软件编译速度的软件   
