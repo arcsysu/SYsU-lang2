@@ -344,7 +344,7 @@ cmake --build build --target install
 
 ![alt text](../images/docker_setting.png)
 
-在以上 linux 系统软件安装完成之后，我们还需要在容器内安装一系列 vscode 插件，以便更方便地进行实验代码的编写。请同学们按照以下所示的方法，打开 vscode 的插件安装界面。
+在以上 linux 系统软件安装完成之后，我们还需要在容器内安装一系列 vscode 插件，以便进行实验代码的编写。请同学们按照以下所示的方法，打开 vscode 的插件安装界面。
 
 ![打开插件界面](../images/plugindemo.jpg)
 
@@ -460,7 +460,7 @@ cd /your/path/to/SYsU-lang2/antlr && bash install.sh
 
 ### 配置vscode和cmake  
 
-在以上软件安装完成之后，我们还需要安装一系列 vscode 插件，以便更方便地进行实验代码的编写。请同学们按照以下所示的方法，打开 vscode 的插件安装界面。
+在以上软件安装完成之后，我们还需要安装一系列 vscode 插件，以便进行实验代码的编写。请同学们按照以下所示的方法，打开 vscode 的插件安装界面。
 
 ![打开插件界面](../images/plugindemo.jpg)
 
