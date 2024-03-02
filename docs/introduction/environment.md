@@ -27,7 +27,7 @@ WSL 是 Windows Subsystem for Linux 的简称，它是微软在 Windows 操作�
 ```shell
 wsl -l -v                       # 列举所有已安装的 Linux 系统
 wsl --set-default-version 2     # 设置 WSL 默认版本号为2
-wsl -d Ubuntu --install         # 安装 Ubuntu 系统
+wsl --install -d Ubuntu        # 安装 Ubuntu 系统
 ```
 
 ![WSL安装示意](../images/wsl1.png)
@@ -405,7 +405,7 @@ brew install ninja wget cmake flex bison xz # 下载软件
 
 # Linux
 apt update # 更新软件包列表信息
-apt install -y ninja-build clang-14 wget cmake xz-utils unzip g++ lld flex bison git # 下载软件
+apt install -y ninja-build clang-14 wget cmake xz-utils unzip g++ lld flex bison # 下载软件
 
 #以下是上述软件的简要介绍   
 # ninja          一个用于加速软件编译速度的软件   
