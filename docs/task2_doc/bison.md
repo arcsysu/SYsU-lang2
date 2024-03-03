@@ -298,8 +298,8 @@ start
 ```
 ## 如何debug
 
-### yyparse部分出现问题
-即bison的文法规约等出现问题，直接设置yydebug为1即可。在main.cpp中加入以下的代码。
+### yydebug
+yyparse部分出现问题，即bison的文法规约等出现问题，直接设置yydebug为1即可。在main.cpp中加入以下的代码。
 ![alt text](../images/bison/yydebug.png)
 即可打印出详细的bison文法移进规约栈的信息，从而进行定位。
 
@@ -310,7 +310,7 @@ start
 ### 断点调试
 在`Typing`和`Asg2Json`部分使用使用断点调试，看下是哪一部分生成不到位出了问题。配合`std::cout`打印更佳。
 
-### 文件进行输出
+### 输出到文件
 有时候编译很顺畅的进行通过的时候，`std::cout`是打印不出的，因此这个时候可以将`std::cout`写入到文件里面。例如可以定义以下函数，然后使用该函数就可以打印到指定文件，即可进行debug。
 ```cpp
 void printToTxtFile(std::string message) {
