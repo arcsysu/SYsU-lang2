@@ -102,36 +102,7 @@ ConstExp      ::= Exp;
 ```
 如果需要SysY语言更为详细的文法解释和定义，可以参考该链接：https://gitlab.eduxiji.net/nscscc/compiler2021/-/blob/master/SysY%E8%AF%AD%E8%A8%80%E5%AE%9A%E4%B9%89.pdf
 
-## 任务描述
 
-在本实验中，我们的任务是进行语法分析，然后生成json文件，例如同学们可以看下其中的一个文件：`/workspaces/SYsU-lang2/build/test/task2/functional-0/000_main.sysu.c/answer.json`
-该json文件是clang parse生成的标准答案，而我们也需要生成这样的答案。
-![alt text](../images/bison/task2-answer.png)
-
-下面对这个文件进行一些说明：
-
-这个文件太长、不太好看结构，但是所幸vscode可以很简便的看到结构，我们采取下述方式:将鼠标移到该json文件中，其下面红框部分就会显示这个文件的结构，从而可以很方便的进行整体查看该结构。
-![alt text](../images/bison/task2-json.png)
-
-以这个文件为例，其最外层的结构的kind（种类）为TranslationUnitDecl，然后其有个属性为inner，包含其余6个部分（0-5）：前5个都是TypedefDecl（这个不用管），最后一个是FunctionDecl，将其进行展开继续查看。
-![alt text](../images/bison/task2-answer-exam.png)
-
-由该文件，可以得到其整体结构为：
-```bash
-|-- TranslationUnitDecl
-   |-- 多个TypedefDecl（不用管）
-   |-- FunctionDecl
-      |-- CompoundStmt
-         |-- ReturnStmt
-            |-- IntegerLiteral
-```
-
-
-### 评分标准
-同学们查看json文件，会发现上述每个节点里面包含了非常多的属性，除去TypedefDecl不用管之外，我们的评分以属性打印为准，具体如下：
-- 是否提取出正确的 "kind"、"name"、"value" 键值，不含 "InitListExpr"（60 分）
-- 是否提取出正确的 "type" 键值及是否构造正确的 "InitListExpr" 生成树（30 分）。
-- 是否提取出其它非 "id" 以外的键值（10 分）。
 
 ## 总体思路(main.cpp)
 
