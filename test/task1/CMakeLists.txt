@@ -34,6 +34,8 @@ add_custom_target(
   USES_TERMINAL
   SOURCES answer.py)
 
+add_dependencies(task1-answer task0-answer)
+
 # 对实验进行评分
 add_custom_target(
   task1-score
@@ -44,7 +46,7 @@ add_custom_target(
   USES_TERMINAL
   SOURCES score.py)
 
-add_dependencies(task1-score task1 task1-answer task0-answer)
+add_dependencies(task1-score task1 task1-answer)
 
 # 为每个测例创建一个测试和评分
 foreach(_case ${_task1_cases})
