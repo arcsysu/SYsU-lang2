@@ -1,442 +1,280 @@
-import json
-import os
 import sys
 import argparse
-import logging
+import subprocess as subps
 import os.path as osp
 import gc
 
-
-class Test_Report:
-
-    def __init__(self, name, score, max_score, output, output_path=None):
-        self.name = name
-        self.score = score
-        self.max_score = max_score
-        self.output = output
-        self.output_path = output_path
+sys.path.append(osp.abspath(__file__ + "/../.."))
+from common import CasesHelper, ScoreReport, print_parsed_args
 
 
-class LeaderBoard_Report:
-
-    def __init__(self, name, value, order, is_desc=False, suffix=None):
-        self.name = name
-        self.value = value
-        self.order = order
-        self.is_desc = is_desc
-        self.suffix = suffix
+class Error(Exception):
+    pass
 
 
-class ReportsManager:
+def score_one(
+    cases_helper: CasesHelper, case: CasesHelper.Case
+) -> ScoreReport.TestEntry:
+    """评测单个测例，打印出一行评测结果"""
 
-    def __init__(self, task_name='task'):
-        self.tests = []
-        self.testsleaderboard = []
-        self.tests_name_max_len = 0
-        self.testsleaderboard_name_max_len = 0
-        self.task_name = task_name
-
-    def add_test_report(self,
-                        name,
-                        score,
-                        max_score,
-                        output,
-                        output_path=None):
-        self.tests.append(
-            Test_Report(name, score, max_score, output, output_path))
-        self.tests_name_max_len = max(self.tests_name_max_len, len(name))
-
-    def add_test_report_instance(self, Test_Report):
-        self.tests.append(Test_Report)
-        self.tests_name_max_len = max(self.tests_name_max_len,
-                                      len(Test_Report.name))
-
-    def add_leaderboard_report(self,
-                               name,
-                               value,
-                               order=0,
-                               is_desc=False,
-                               suffix=None):
-        self.testsleaderboard.append(
-            LeaderBoard_Report(name, value, order, is_desc, suffix))
-        self.testsleaderboard_name_max_len = max(
-            self.testsleaderboard_name_max_len, len(name))
-
-    def add_leaderboard_report_instance(self, LeaderBoard_Report):
-        self.testsleaderboard.append(LeaderBoard_Report)
-        self.testsleaderboard_name_max_len = max(
-            self.testsleaderboard_name_max_len, len(LeaderBoard_Report.name))
-
-    def to_json(self):
-        # 返回一个 json 字符串，它有两个属性，一个是 test_reports，一个是 leaderboard_reports
-        # test_reports 是一个列表，每一个元素是一个字典，包含了一个测试报告的信息
-        # leaderboard_reports 是一个列表，每一个元素是一个字典，包含了一个排行榜报告的信息
-        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True)
-
-    def to_txt(self):
-        # 返回一个字符串，它包含了所有的测试报告和排行榜报告的信息
-        txt = u''
-        for leaderboard in self.testsleaderboard:
-            if leaderboard.name == '总分':
-                txt += f'{self.task_name} 总分:'.encode('utf-8').decode('utf-8')
-                txt += f'{leaderboard.value:.2f}'.encode('utf-8').decode(
-                    'utf-8')
-                if leaderboard.suffix:
-                    txt += f' {leaderboard.suffix}'.encode('utf-8').decode(
-                        'utf-8')
-                txt += '\n\n'.encode('utf-8').decode('utf-8')
-        for test in self.tests:
-            txt += f'{test.name}'.ljust(self.tests_name_max_len +
-                                        2).encode('utf-8').decode('utf-8')
-            txt += f'{test.score:.2f}'.rjust(8).encode('utf-8').decode('utf-8')
-            txt += '/'.encode('utf-8').decode('utf-8')
-            txt += f'{test.max_score:.2f}'.ljust(8).encode('utf-8').decode(
-                'utf-8')
-            txt += f'{test.output}'.ljust(20).encode('utf-8').decode('utf-8')
-            txt += '\n'.encode('utf-8').decode('utf-8')
-        return txt
-
-
-class CustomFilter(logging.Filter):
-
-    def __init__(self,
-                 name: str = "",
-                 condition_dict: dict = {},
-                 condition: str = None) -> None:
-        super().__init__(name)
-        self.condition_dict = condition_dict
-        self.condition = condition
-
-    def filter(self, record):
-        return self.condition_dict[self.condition]
-
-
-def check_and_get_case(task1_logger, condition_dict, task1_test_dir,
-                       task1_test_weight):
-    # 判断 task1_test_dir 是否存在
-    task1_test_dir = osp.abspath(task1_test_dir)
-    if not osp.exists(task1_test_dir):
-        task1_logger.error('task1_test_dir: %s does not exist.' %
-                           task1_test_dir)
-        return 0, {}
-    # 判断 task1_test_weight 是否存在
-    if not osp.exists(task1_test_weight):
-        task1_logger.error('task1_test_weight: %s does not exist.' %
-                           task1_test_weight)
-        return 0, {}
-
-    task1_test_weight_dict = {}
-    try:
-        with open(task1_test_weight, 'r') as f:
-            for line in f:
-                case_line = line.strip().split()
-                if len(case_line) == 2:
-                    case = case_line[0]
-                    weight = case_line[1]
-                    task1_test_weight_dict[case] = float(weight)
-                elif len(case_line) == 1:
-                    case = case_line[0]
-                    task1_test_weight_dict[case] = 1.0
-    except Exception as e:
-        task1_logger.error('task1_test_weight: %s format error.' %
-                           task1_test_weight)
-        task1_logger.error(e)
-        return 0, {}
-
-    return 1, task1_test_weight_dict
-
-
-def make_weighted_averge(now_weighted_averge, now_weights_sum, new_value,
-                         new_weight):
-    new_weights_sum = now_weights_sum + new_weight
-    new_weighted_averge = now_weighted_averge + (
-        new_value - now_weighted_averge) * new_weight * 1.0 / new_weights_sum
-    return new_weighted_averge, new_weights_sum
-
-
-def score_one_case(task1_logger, condition_dict, manager, task1_test_log_level,
-                   task1_test_dir, case):
-    # 为每一个算例单独生成一个日志文件
-    case_abs_path = osp.join(task1_test_dir, case)
-    # 创建过滤器
-    one_case_file_filter = CustomFilter(name='one_case_file_filter',
-                                        condition_dict=condition_dict,
-                                        condition='one_case_file')
-
-    # 创建文件处理器
-    one_case_file_path = osp.join(case_abs_path, 'score.txt')
-    file_handler = logging.FileHandler(one_case_file_path,
-                                       mode='w',
-                                       encoding='utf-8')
-    file_handler.addFilter(one_case_file_filter)
-    file_handler.setFormatter(logging.Formatter('%(message)s'))
-    file_handler.setLevel(logging.INFO)
-    task1_logger.addHandler(file_handler)
-    condition_dict['one_case_file'] = True
-    condition_dict['all_cases_file'] = False
-    condition_dict['console'] = False
-
-    task1_logger.info('测试用例: %s' % case)
-    task1_logger.info('测试用例绝对路径: %s' % case_abs_path)
-
+    name = case.name
     score = 0.0
+    max_score = 100.0
+    output = "[PASS]"
+    weight = case.weight
+    output_path, fp = cases_helper.open_case_report(case)
+    print(output_path, end=" ... ", flush=True)
 
-    def score_one_case_exit(score):
-        task1_logger.info('分数: %f' % score)
-        condition_dict['one_case_file'] = False
-        condition_dict['all_cases_file'] = False
-        condition_dict['console'] = True
-        task1_logger.removeHandler(file_handler)
-        return score
+    def fprint(*args):
+        print(*args, file=fp)
 
-    # 如果 case_abs_path 下没有 answer.txt 文件，就返回 0
-    answer_path = osp.join(case_abs_path, 'answer.txt')
-    if not osp.exists(answer_path):
-        task1_logger.error('%s 的标准答案未生成，请先生成 task1-answer' % case_abs_path)
-        score = 0.0
-        manager.add_test_report(case, score, 100.0, '标准答案未生成',
-                                one_case_file_path)
-        return score_one_case_exit(score)
+    with fp:
+        try:
+            # 如果没有 answer.txt 文件，零分
+            answer_path = cases_helper.of_case_bindir("answer.txt", case)
+            if not osp.exists(answer_path):
+                output = "没有可参考的标准答案"
+                fprint("标准参考答案文件不存在：", answer_path)
+                raise Error()
 
-    # 如果 case_abs_path 下没有 output.txt 文件，就返回 0
-    output_path = osp.join(case_abs_path, 'output.txt')
-    if not osp.exists(output_path):
-        task1_logger.error('%s 的用户答案未生成，请调用测试查看是否能正常生成' % case_abs_path)
-        score = 0.0
-        manager.add_test_report(case, score, 100.0, '用户答案未生成',
-                                one_case_file_path)
-        return score_one_case_exit(score)
+            # 如果没有 output.txt 文件，零分
+            output_path = cases_helper.of_case_bindir("output.txt", case)
+            if not osp.exists(output_path):
+                output = "没有输出结果"
+                fprint("输出结果文件不存在：", output_path)
+                raise Error()
 
-    # 读取 answer.txt 和 output.txt 文件
-    with open(answer_path, 'r') as f:
-        answers = f.readlines()
-    gc.collect()
-    with open(output_path, 'r') as f:
-        outputs = f.readlines()
-    gc.collect()
+            # 读取 answer.txt 和 output.txt 文件
+            with open(answer_path, "r", encoding="utf-8") as f:
+                answers = f.readlines()
+            with open(output_path, "r", encoding="utf-8") as f:
+                outputs = f.readlines()
 
-    def split_tokens(t):
-        tmp = str(t)
-        k1 = tmp.find("'")
-        k2 = tmp.rfind("'")
-        k3 = tmp.rfind("Loc=<")
-        flag0 = 1
-        if k1 == -1 or k2 == -1 or k3 == -1:
-            flag0 = 0
-        if k1 != -1 and k2 != -1:
-            flag0 = 1
-        tok0 = tmp.split()[0].strip()
-        str0 = tmp[k1 + 1:k2].strip()
-        mid0 = str(tmp[k2 + 1:k3].strip().split())
-        loc0 = tmp[k3:].strip()
-        return [tok0, str0, mid0, loc0, flag0]
+            def split_tokens(t):
+                tmp = str(t)
+                k1 = tmp.find("'")
+                k2 = tmp.rfind("'")
+                k3 = tmp.rfind("Loc=<")
+                flag0 = 1
+                if k1 == -1 or k2 == -1 or k3 == -1:
+                    flag0 = 0
+                if k1 != -1 and k2 != -1:
+                    flag0 = 1
+                tok0 = tmp.split()[0].strip()
+                str0 = tmp[k1 + 1 : k2].strip()
+                mid0 = str(tmp[k2 + 1 : k3].strip().split())
+                loc0 = tmp[k3:].strip()
+                return [tok0, str0, mid0, loc0, flag0]
 
-    # 计算评分
-    tokens_count = len(answers)
-    tokens_kind_correct_count = 0
-    tokens_location_correct_count = 0
-    tokens_unrelated_correct_count = 0
-    output_tokens_count = len(outputs)
+            # 如果词法单元数量不一致，零分
+            tokens_count = len(answers)
+            output_tokens_count = len(outputs)
+            if tokens_count != output_tokens_count:
+                output = "词法单元数量不一致"
+                fprint(
+                    "词法单元数量与标准答案不一致："
+                    + f"{tokens_count} != {output_tokens_count}"
+                )
+                fprint("请检查是否有遗漏或多余的词法单元")
+                raise Error()
 
-    if tokens_count != output_tokens_count:
-        task1_logger.error('用户答案的词法单元数量与标准答案不一致，请检查是否有遗漏或多余的词法单元')
-        score = 0.0
-        manager.add_test_report(case, score, 100.0, '词法单元数量不一致',
-                                one_case_file_path)
-        return score_one_case_exit(score)
+            # 逐个比较词法单元，计算评分
+            tokens_kind_correct_count = 0
+            tokens_location_correct_count = 0
+            tokens_unrelated_correct_count = 0
+            for i in range(tokens_count):
+                tok0, str0, mid0, loc0, flag0 = split_tokens(answers[i])
+                tok1, str1, mid1, loc1, flag1 = split_tokens(outputs[i])
 
-    for i in range(tokens_count):
+                if flag1 != 1:
+                    fprint("\n词法单元 " + str(i + 1) + " 输出格式错误")
+                    fprint("< " + answers[i])
+                    fprint("---")
+                    fprint("> " + outputs[i])
+                    continue
 
-        tok0, str0, mid0, loc0, flag0 = split_tokens(answers[i])
-        tok1, str1, mid1, loc1, flag1 = split_tokens(outputs[i])
+                if i == tokens_count - 1:
+                    if tok1 == "eof" and str1 == "":
+                        tokens_kind_correct_count += 1
+                        tokens_location_correct_count += 1
+                        tokens_unrelated_correct_count += 1
+                        break
+                    else:
+                        fprint("\n词法单元 " + str(i + 1) + " 类型错误")
+                        fprint("< " + tok0)
+                        fprint("---")
+                        fprint("> " + tok1)
+                        continue
 
-        if flag1 != 1:
-            if task1_test_log_level >= 1:
-                task1_logger.error("\nERROR: 词法单元 " + str(i + 1) + " 输出格式错误")
-                task1_logger.error("< " + answers[i])
-                task1_logger.error("---")
-                task1_logger.error("> " + outputs[i])
-            continue
+                if tok0 != tok1:
+                    fprint("\n词法单元 " + str(i + 1) + " 类型错误")
+                    fprint("< " + tok0)
+                    fprint("---")
+                    fprint("> " + tok1)
+                    continue
 
-        if i == tokens_count - 1:
-            if tok1 == 'eof' and str1 == '':
+                if str0 != str1:
+                    fprint("\n词法单元 " + str(i + 1) + " 值错误")
+                    fprint("< " + str0)
+                    fprint("---")
+                    fprint("> " + str1)
+                    continue
+
                 tokens_kind_correct_count += 1
+
+                if loc0 != loc1:
+                    fprint("\n词法单元 " + str(i + 1) + " 位置错误")
+                    fprint("< " + loc0)
+                    fprint("---")
+                    fprint("> " + loc1)
+                    continue
+
                 tokens_location_correct_count += 1
+
+                if mid0 != mid1:
+                    fprint("\n词法单元 " + str(i + 1) + " 识别无关字符错误")
+                    fprint("< " + mid0)
+                    fprint("---")
+                    fprint("> " + mid1)
+                    continue
+
                 tokens_unrelated_correct_count += 1
-                break
-            else:
-                if task1_test_log_level >= 1:
-                    task1_logger.error("\nERROR: 词法单元 " + str(i + 1) + " 类型错误")
-                    task1_logger.error("< " + tok0)
-                    task1_logger.error("---")
-                    task1_logger.error("> " + tok1)
-                continue
 
-        if tok0 != tok1:
-            if task1_test_log_level >= 1:
-                task1_logger.error("\nERROR: 词法单元 " + str(i + 1) + " 类型错误")
-                task1_logger.error("< " + tok0)
-                task1_logger.error("---")
-                task1_logger.error("> " + tok1)
-            continue
-        if str0 != str1:
-            if task1_test_log_level >= 1:
-                task1_logger.error("\nERROR: 词法单元 " + str(i + 1) + " 值错误")
-                task1_logger.error("< " + str0)
-                task1_logger.error("---")
-                task1_logger.error("> " + str1)
-            continue
-        tokens_kind_correct_count += 1
+            fprint()
+            fprint(
+                "类型及值正确的词法单元数目："
+                + f"{tokens_kind_correct_count}/{tokens_count}"
+            )
+            fprint(
+                "位置正确的词法单元数目："
+                + f"{tokens_location_correct_count}/{tokens_count}"
+            )
+            fprint(
+                "识别无关字符正确的词法单元数目："
+                + f"{tokens_unrelated_correct_count}/{tokens_count}"
+            )
 
-        if loc0 != loc1:
-            if task1_test_log_level >= 2:
-                task1_logger.error("\nERROR: 词法单元 " + str(i + 1) + " 位置错误")
-                task1_logger.error("< " + loc0)
-                task1_logger.error("---")
-                task1_logger.error("> " + loc1)
-            continue
-        tokens_location_correct_count += 1
+            score = max_score * (
+                tokens_kind_correct_count / tokens_count * 0.6
+                + tokens_location_correct_count / tokens_count * 0.3
+                + tokens_unrelated_correct_count / tokens_count * 0.1
+            )
 
-        if mid0 != mid1:
-            if task1_test_log_level >= 2:
-                task1_logger.error("\nERROR: 词法单元 " + str(i + 1) + " 识别无关字符错误")
-                task1_logger.error("< " + mid0)
-                task1_logger.error("---")
-                task1_logger.error("> " + mid1)
-            continue
-        tokens_unrelated_correct_count += 1
+        except Error:
+            pass
 
-    task1_logger.info('\n')
-    task1_logger.info(
-        f'INFO: 类型及值正确的词法单元数目: {tokens_kind_correct_count}/{tokens_count}')
-    task1_logger.info(
-        f'INFO: 位置正确的词法单元数目: {tokens_location_correct_count}/{tokens_count}')
-    task1_logger.info('INFO: 识别无关字符正确的词法单元数目: ' +
-                      f'{tokens_unrelated_correct_count}/{tokens_count}')
-    # 计算评分
-    score = (tokens_kind_correct_count * 1.0 / tokens_count * 0.6 +
-             tokens_location_correct_count * 1.0 / tokens_count * 0.3 +
-             tokens_unrelated_correct_count * 1.0 / tokens_count * 0.1) * 100.0
-    manager.add_test_report(case, score, 100.0, '评测正常执行', one_case_file_path)
-    return score_one_case_exit(score)
+    print(output)
+    return ScoreReport.TestEntry(
+        name=name,
+        score=score,
+        max_score=max_score,
+        output=output,
+        output_path=output_path,
+        weight=weight,
+    )
 
 
-def score_all_case(task1_logger, condition_dict, manager, task1_test_log_level,
-                   task1_test_dir, task1_test_weight):
+def score_all(cases_helper: CasesHelper) -> ScoreReport:
+    """评测所有测例，生成成绩单"""
 
-    # 检查 task1_test_dir, task1_case_dir, task1_test_weight 是否存在, 并获取算例名字
-    flag, task1_test_weight_dict = check_and_get_case(task1_logger,
-                                                      condition_dict,
-                                                      task1_test_dir,
-                                                      task1_test_weight)
+    score_report = ScoreReport("task1")
 
-    if not flag:
-        task1_logger.error('检测目录出错')
-        manager.add_test_report('检测目录', 0.0, 100.0, '检测目录出错')
-        manager.add_leaderboard_report('总分', 0.0, 0, True)
-        return 0
+    for case in cases_helper.cases:
+        test_entry = score_one(cases_helper, case)
+        score_report.tests.append(test_entry)
+        gc.collect()
 
-    # 对每一个算例进行评分
-    weighted_average_score = 0.0
-    weights_sum = 0.0
-    case_idx = 1
-    case_len = len(task1_test_weight_dict)
-    for case, weight in task1_test_weight_dict.items():
-        score = score_one_case(task1_logger, condition_dict, manager,
-                               task1_test_log_level, task1_test_dir, case)
-        task1_logger.info(f'[{case_idx}/{case_len}] {case} 分数: {score:.2f}')
-        weighted_average_score, weights_sum = make_weighted_averge(
-            weighted_average_score, weights_sum, score, weight)
-        case_idx += 1
+    score_report.leader_board.append(
+        ScoreReport.LeaderBoardEntry(
+            "总分",
+            score_report.final_score(),
+            0,
+            True,
+            "",
+        )
+    )
 
-    manager.add_leaderboard_report('总分', weighted_average_score, 0, True)
-    task1_logger.info(f'总分: {weighted_average_score:.2f}')
-    return 1
+    return score_report
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('task1_test_ctest',
-                        type=str,
-                        help='task1 调用测试的可执行文件路径')
-    parser.add_argument('task1_test_dir', type=str, help='task1 的测试总目录')
-    parser.add_argument('task1_test_weight',
-                        type=str,
-                        help='保存 task1 的测试用例及权重的文件')
-    # parser.add_argument('task1_test_log_level',
-    #                     type=int,
-    #                     help='保存 task1 的测试用例及权重的文件')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser("实验一评测脚本")
+    parser.add_argument("srcdir", type=str, help="测例目录")
+    parser.add_argument("bindir", type=str, help="测评输出目录")
+    parser.add_argument("cases_file", type=str, help="测例表路径")
+    parser.add_argument("ctest_exe", type=str, help="CTest 程序路径")
+    parser.add_argument("--single", type=str, help="运行单个测例")
     args = parser.parse_args()
-    args.task1_test_log_level = 3
-    # 判断输入参数是否合法
-    if args.task1_test_log_level < 1 or args.task1_test_log_level > 3:
-        raise ValueError('task1_test_log_level must be 1, 2 or 3.')
+    print_parsed_args(parser, args)
 
-    # 将路径转换为绝对路径
-    args.task1_test_dir = osp.abspath(args.task1_test_dir)
-    args.task1_test_weight = osp.abspath(args.task1_test_weight)
-    condition_dict = {
-        'console': True,
-        'all_cases_file': False,
-        'one_case_file': False
-    }
+    print("加载测例表...", end="", flush=True)
+    cases_helper = CasesHelper.load_file(
+        args.srcdir,
+        args.bindir,
+        args.cases_file,
+    )
+    print("完成")
 
-    # 进行 CTEST
-    os.system(f'{args.task1_test_ctest} --test-dir {args.task1_test_dir}')
-    # 生成总成绩单的日志保存到 task1_test_dir 下的 score.txt 文件中
-    all_cases_file_filter = CustomFilter(name='all_cases_file_filter',
-                                         condition_dict=condition_dict,
-                                         condition='all_cases_file')
-    scoresfile_for_all_cases = osp.abspath(
-        osp.join(args.task1_test_dir, 'score.txt'))
-    file_handler = logging.FileHandler(scoresfile_for_all_cases, mode='w')
-    file_handler.addFilter(all_cases_file_filter)
-    file_handler.setLevel(logging.INFO)
+    if case_name := args.single:
+        for case in cases_helper.cases:
+            if case.name == case_name:
+                break
+        else:
+            print("没有找到指定的测例：", case_name)
+            sys.exit(1)
 
-    # 生成控制台的日志
-    console_filter = CustomFilter(name='console_filter',
-                                  condition_dict=condition_dict,
-                                  condition='console')
-    console_handler = logging.StreamHandler(stream=sys.stdout)
-    console_handler.addFilter(console_filter)
-    console_handler.setLevel(logging.INFO)
+        # 通过 CTest 运行同学们的代码
+        case_outerr = cases_helper.open_case_outerr(case, "ctest")
+        out_path, out, err_path, err = case_outerr
+        print("运行 CTest 获取结果...")
+        print("CTest 运行输出：", out_path, err_path)
+        with out, err:
+            subps.run(
+                [
+                    args.ctest_exe,
+                    "--test-dir",
+                    args.bindir,
+                    "-R",
+                    "task1/" + case_name,
+                    # 注意这里一定不能写成 test1/，否则会无限递归下去
+                ],
+                stdout=out,
+                stderr=err,
+            )
+        print("完成")
 
-    # 设置日志格式
-    formatter = logging.Formatter('%(message)s')
-    file_handler.setFormatter(formatter)
-    console_handler.setFormatter(formatter)
+        score_one(cases_helper, case)
+        print("评测结果已保存：", cases_helper.of_case_bindir("score.txt", case))
 
-    # 设置日志产生器
-    task1_logger = logging.getLogger('task1')
-    task1_logger.setLevel(logging.INFO)
-    task1_logger.addHandler(file_handler)
-    task1_logger.addHandler(console_handler)
-
-    # 打印输入参数
-    task1_logger.info('Task1 测试总目录路径: %s' % args.task1_test_dir)
-    task1_logger.info('Task1 测试用例及权重文件路径: %s' % args.task1_test_weight)
-
-    task1_logger.info('-' * 40)
-    manager = ReportsManager(task_name='task1')
-    # 对 task1 的结果进行评分
-    grade_done = score_all_case(task1_logger, condition_dict, manager,
-                                args.task1_test_log_level, args.task1_test_dir,
-                                args.task1_test_weight)
-    if grade_done:
-        task1_logger.info('Task1 评分完成.')
     else:
-        task1_logger.error('Task1 评分出错.')
-    task1_logger.info('-' * 40)
-    results_txt = manager.to_txt()
-    condition_dict['all_cases_file'] = True
-    task1_logger.info(results_txt)
-    condition_dict['all_cases_file'] = False
-    task1_logger.info('评分结果已保存到: %s' % scoresfile_for_all_cases)
-    task1_logger.info('各测例的评分结果已保存到各自的 score.txt 文件中.')
+        # 通过 CTest 运行同学们的代码
+        out_path, out, err_path, err = cases_helper.open_outerr("ctest")
+        print("运行 CTest 获取结果...")
+        print("CTest 运行输出：", out_path, err_path)
+        with out, err:
+            subps.run(
+                [args.ctest_exe, "--test-dir", args.bindir],
+                stdout=out,
+                stderr=err,
+            )
+        print("完成")
 
-    results_json = manager.to_json()
-    jsonfile_for_all_cases = osp.abspath(
-        osp.join(args.task1_test_dir, 'score.json'))
-    with open(jsonfile_for_all_cases, 'w') as f:
-        f.write(results_json)
-    task1_logger.info('JSON格式的评分结果已保存到: %s' % jsonfile_for_all_cases)
+        # 评分，生成成绩单
+        print()
+        score_report = score_all(cases_helper)
+        print()
+
+        print("=" * 80)
+        score_report.print()
+        print("=" * 80, end="\n\n")
+
+        # 保存成绩单
+        txt_path, f = cases_helper.open_root_report()
+        with f:
+            score_report.dump_human_text(f)
+        print("成绩单已保存：", txt_path)
+
+        json_path, f = cases_helper.open_autograder_json()
+        with f:
+            score_report.dump_autograder(f)
+        print("JSON 格式：", json_path)
