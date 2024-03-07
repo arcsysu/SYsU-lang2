@@ -53,21 +53,21 @@ endif()
 set(CTEST_TEST_TIMEOUT 3)
 
 # 实验一排除测例名的正则式
-set(TASK1_EXCLUDE_REGEX "performance/.*")
+set(TASK1_EXCLUDE_REGEX "^performance/.*")
 # 实验一测例表
 set(TASK1_CASES_TXT "")
 
 # 实验二排除测例名的正则式
-set(TASK2_EXCLUDE_REGEX "performance/.*")
+set(TASK2_EXCLUDE_REGEX "^performance/.*")
 # 实验二测例表
 set(TASK2_CASES_TXT "")
 
 # 实验三排除测例名的正则式
-set(TASK3_EXCLUDE_REGEX "performance/.*")
+set(TASK3_EXCLUDE_REGEX "^performance/.*")
 # 实验三测例表
 set(TASK3_CASES_TXT "")
 
 # 实验四排除测例名的正则式
-set(TASK4_EXCLUDE_REGEX "mini-performance/.*")
+set(TASK4_EXCLUDE_REGEX "^mini-performance/.*")
 # 实验四测例表
 set(TASK4_CASES_TXT "")

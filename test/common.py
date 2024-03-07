@@ -228,9 +228,9 @@ class ScoreReport(NamedTuple):
 
         for i in self.tests:
             col1 = i.name
-            if len(col1) > 50:
-                col1 = "... " + col1[-46:]
-            col1 = f"{col1 + ' ':.<50}"
+            if len(col1) > 60:
+                col1 = "... " + col1[-55:]
+            col1 = f"{col1 + ' ':.<60}"
 
             col2 = f" {i.score:.2f}"
             col2 = f"{col2:.>6}/{i.max_score:.2f}"
@@ -239,7 +239,7 @@ class ScoreReport(NamedTuple):
 
         print(
             f"\n{self.title}\n总分（加权）："
-            + f"{self.final_score()}/{self.final_max_score()}",
+            + f"{self.final_score():.2f}/{self.final_max_score():.2f}",
             file=fp,
         )
 
