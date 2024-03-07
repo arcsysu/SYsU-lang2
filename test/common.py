@@ -137,10 +137,10 @@ class ScoreReport(NamedTuple):
 
     class LeaderBoardEntry(NamedTuple):
         name: str
-        value: int
+        value: float
         order: int
         is_desc: bool
-        suffix: str
+        suffix: str = ""
 
     title: str
     tests: list[TestEntry] = []
@@ -152,7 +152,15 @@ class ScoreReport(NamedTuple):
         :return float: 最终得分
         """
 
-        return sum(i.score * i.weight for i in self.tests)
+        return sum(i.score * i.weight / len(self.tests) for i in self.tests)
+
+    def final_max_score(self) -> float:
+        """计算最终满分
+
+        :return float: 最终满分
+        """
+
+        return sum(i.max_score * i.weight / len(self.tests) for i in self.tests)
 
     def dump_autograder(self, fp, output_prefix="") -> None:
         """转储 Autograder 使用的 JSON 文件
@@ -193,7 +201,11 @@ class ScoreReport(NamedTuple):
         :param str fp: 输出文件
         """
 
-        print(f"{self.title}\n总分（加权）：{self.final_score()}\n", file=fp)
+        print(
+            f"{self.title}\n总分（加权）："
+            + f"{self.final_score()}/{self.final_max_score}\n",
+            file=fp,
+        )
 
         # 计算首列宽
         name_col_len = max(len(i.name) for i in self.tests) + 2
@@ -225,7 +237,11 @@ class ScoreReport(NamedTuple):
 
             print(col1, col2, file=fp, sep="...")
 
-        print(f"\n{self.title}\n总分（加权）：{self.final_score()}", file=fp)
+        print(
+            f"\n{self.title}\n总分（加权）："
+            + f"{self.final_score()}/{self.final_max_score()}",
+            file=fp,
+        )
 
 
 def print_parsed_args(

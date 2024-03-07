@@ -235,7 +235,7 @@ if __name__ == "__main__":
                     "--test-dir",
                     args.bindir,
                     "-R",
-                    "task1/" + case_name,
+                    "^task1/" + case_name,
                     # 注意这里一定不能写成 test1/，否则会无限递归下去
                 ],
                 stdout=out,
@@ -243,7 +243,8 @@ if __name__ == "__main__":
             )
         print("完成")
 
-        score_one(cases_helper, case)
+        score = score_one(cases_helper, case)
+        print(f"得分：{score.score}/{score.max_score}")
         print("评测结果已保存：", cases_helper.of_case_bindir("score.txt", case))
 
     else:
@@ -253,7 +254,13 @@ if __name__ == "__main__":
         print("CTest 运行输出：", out_path, err_path)
         with out, err:
             subps.run(
-                [args.ctest_exe, "--test-dir", args.bindir],
+                [
+                    args.ctest_exe,
+                    "--test-dir",
+                    args.bindir,
+                    "-R",
+                    "^task1/.*",
+                ],
                 stdout=out,
                 stderr=err,
             )
