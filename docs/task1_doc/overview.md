@@ -49,7 +49,7 @@ eof ''		Loc=<./basic/000_main.sysu.c:3:2>
 
 ![score task1](../images/task1score.png)
 
-为了简化词法分析器，我们仅判断文件结束符`eof`的词法输出结果是否被正确识别并输出别名，而不进行词法单元位置和源文件路径的判断。
+实验要求输出除`eof`和不可见字符外的所有词法单元在源文件的位置和源文件的路径。为了简化词法分析器，对于文件结束符`eof`，我们仅判断其是否被正确识别并输出别名，而不进行词法单元位置和源文件路径的判断。
 
 完成实验代码编写和测试后，请通过构建`PROJECT OUTLINE/SYsU-lang/task/task1-score`进行实验一源代码打包并提交至测评机进行正式测评，打包结果将保存于`/workspaces/SYsU-lang2/build/task`中。
 
