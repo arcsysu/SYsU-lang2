@@ -11,7 +11,7 @@
 2.如何更新代码仓库:请在终端依次输入以下指令
 
 ```bash
-git stash
-git pull
-git stash pop
+git stash	# 将当前未提交的修改暂时储藏
+git pull	# 从远程仓库拉取新的实验代码
+git stash pop	# 恢复先前暂时储藏的修改
 ```
