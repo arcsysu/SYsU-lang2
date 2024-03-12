@@ -1,23 +1,46 @@
 lexer grammar SYsU_lang;
 
-Int : 'int';
-Return : 'return';
+Int : 'int';//
+Return : 'return';//
+Const : 'const';
 
-LeftParen : '(';
-RightParen : ')';
-LeftBracket : '[';
-RightBracket : ']';
-LeftBrace : '{';
-RightBrace : '}';
+LeftParen : '(';//
+RightParen : ')';//
+LeftBracket : '[';//
+RightBracket : ']';//
+LeftBrace : '{';//
+RightBrace : '}';//
+Minus : '-';
+Star : '*';
+Slash : '/';
+Percent : '%';
+Greater : '>';
+AmpAmp : '&&';
+Exclaim : '!';
+Less : '<';
 
-Plus : '+';
+Plus : '+';//
 
-Semi : ';';
-Comma : ',';
+Semi : ';';//
+Comma : ',';//
 
-Equal : '=';
+Equal : '=';//
+ExclaimEqual : '!=';
+EqualEqual : '==';
+LessEqual : '<=';
+GreaterEqual : '>=';
+PipePipe : '||';
 
-Identifier
+If : 'if';
+Else : 'else';
+While : 'while';
+Break : 'break';
+Continue : 'continue';
+For : 'for';
+
+Void :'void';
+
+Identifier//
     :   IdentifierNondigit
         (   IdentifierNondigit
         |   Digit
@@ -54,6 +77,10 @@ DecimalConstant
     :   NonzeroDigit Digit*
     ;
 
+NumericConstant
+    :   '0' 'x' [0-9a-fA-F]+
+    ;
+
 fragment
 OctalConstant
     :   '0' OctalDigit*
@@ -75,12 +102,10 @@ OctalDigit
 // 预处理信息前面的数组即行号
 LineAfterPreprocessing
     :   '#' Whitespace* ~[\r\n]*
-        -> skip
     ;
 
 Whitespace
     :   [ \t]+
-        -> skip
     ;
 
 // 换行符号，可以利用这个信息来更新行号
@@ -88,6 +113,5 @@ Newline
     :   (   '\r' '\n'?
         |   '\n'
         )
-        -> skip
-    ;
 
+    ;
