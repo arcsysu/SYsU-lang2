@@ -3,6 +3,7 @@
 * 前言
   * [环境配置](introduction/environment.md)
   * [实验框架使用方法](introduction/howtouse.md)
+  * [评测服务器使用方法](introduction/howtouse.md)
   * [帮助我们改进实验](introduction/helptoimprove.md)
 * Task0
   * [实验内容](task0_doc/task0.md)
