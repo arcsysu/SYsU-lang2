@@ -428,3 +428,6 @@ void printToTxtFile(std::string message) {
 取type的时候，其指针可能是空的，如果这个时候再取其texp对象，就会终止，也不会有报错信息，最好判断一下是不是空指针再去取。
 比如，如下图所示。
 ![alt text](../images/bison/point.png)
+
+- 更改ASG的Type类型
+更改ASG的Type类型，只能改变指针指向，不能直接去赋值。
