@@ -429,5 +429,7 @@ void printToTxtFile(std::string message) {
 比如，如下图所示。
 ![alt text](../images/bison/point.png)
 
-- 更改ASG的Type类型
-更改ASG的Type类型，只能改变指针指向，不能直接去赋值。
+- 更改ASG的`Type`类型
+更改ASG的`Type`类型，只能改变指针指向，不能直接去赋值。
+比如，如下图所示。新建一个`ty`的`Type`对象，更改`ty`，然后改变`$2`的`type`指针的指向为更改后的`ty`。如果直接进行`$2->type->spec=...`是不运行的，因为ASG结构体的`Type`为`const Type *`类型。
+![alt text](../images/bison/type.png)
