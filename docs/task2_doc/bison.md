@@ -184,7 +184,12 @@ start
 本实验采用的文法是SysY语言（编译器比赛中所定义的语言用的文法），其文法如下。
 
 目前提供的代码中的文法可能与下述给出的有细微不相同，但是表达的是一个意思，这无伤大雅，同学们可以作参考。
-```
+<details>
+  <summary>
+    完整文法
+  </summary>
+  
+``` cpp
 start         ::= CompUnit; // start为开始符号
 CompUnit      ::= [CompUnit] (Decl | FuncDef);
 
@@ -230,6 +235,8 @@ LAndExp       ::= EqExp | LAndExp "&&" EqExp;
 LOrExp        ::= LAndExp | LOrExp "||" LAndExp;
 ConstExp      ::= Exp;
 ```
+</details>
+
 如果需要SysY语言更为详细的文法解释和定义，可以参考该链接：https://gitlab.eduxiji.net/nscscc/compiler2021/-/blob/master/SysY%E8%AF%AD%E8%A8%80%E5%AE%9A%E4%B9%89.pdf
 
 ### 文法参考2
@@ -239,7 +246,7 @@ ConstExp      ::= Exp;
     完整文法
   </summary>
 
-  ``` cpp
+  ``` yacc
 start
 	: translation_unit { par::gTranslationUnit.reset($1); }
 	;
