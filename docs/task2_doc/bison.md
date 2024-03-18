@@ -188,7 +188,7 @@ start
   <summary>
     完整文法
   </summary>
-  
+
 ``` cpp
 start         ::= CompUnit; // start为开始符号
 CompUnit      ::= [CompUnit] (Decl | FuncDef);
@@ -235,6 +235,7 @@ LAndExp       ::= EqExp | LAndExp "&&" EqExp;
 LOrExp        ::= LAndExp | LOrExp "||" LAndExp;
 ConstExp      ::= Exp;
 ```
+
 </details>
 
 如果需要SysY语言更为详细的文法解释和定义，可以参考该链接：https://gitlab.eduxiji.net/nscscc/compiler2021/-/blob/master/SysY%E8%AF%AD%E8%A8%80%E5%AE%9A%E4%B9%89.pdf
@@ -246,9 +247,9 @@ ConstExp      ::= Exp;
     完整文法
   </summary>
 
-  ``` yacc
+  ``` cpp
 start
-	: translation_unit { par::gTranslationUnit.reset($1); }
+	: translation_unit
 	;
 
 primary_expression
@@ -692,6 +693,7 @@ declaration_list
 	| declaration_list declaration
 	;
 ```
+
 </details>
 
 
