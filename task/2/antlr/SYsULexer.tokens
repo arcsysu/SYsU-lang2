@@ -1,0 +1,15 @@
+Int=1
+Identifier=2
+LeftParen=3
+RightParen=4
+Return=5
+RightBrace=6
+LeftBrace=7
+Constant=8
+Semi=9
+Equal=10
+Plus=11
+Minus=12
+Comma=13
+LeftBracket=14
+RightBracket=15

@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import math
 from typing import NamedTuple, Optional
 import argparse
 
@@ -55,7 +56,7 @@ class CasesHelper(NamedTuple):
 
                 input_path = os.path.join(
                     srcdir,
-                    base_name.rstrip(".sysu.c") + ".in.gz",
+                    base_name.rstrip(".sysu.c") + ".in",
                 )
                 if not os.path.exists(input_path):
                     input_path = None
@@ -123,6 +124,13 @@ class CasesHelper(NamedTuple):
         path_err = self.of_case_bindir(f"{name}.stderr", case, True)
         return (path_out, open(path_out, "wb"), path_err, open(path_err, "wb"))
 
+    def open_case_input(self, case: Case):
+        """打开测例输入文件"""
+        path = case.input
+        if path is None:
+            return None, None
+        return (path, open(path, "rb"))
+
 
 class ScoreReport(NamedTuple):
     """评分报告"""
@@ -175,8 +183,8 @@ class ScoreReport(NamedTuple):
             "tests": [
                 {
                     "name": i.name,
-                    "score": i.score,
-                    "max_score": i.max_score,
+                    "score": math.ceil(i.score),
+                    "max_score": math.ceil(i.max_score),
                     "output": i.output,
                     "output_path": os.path.join(output_prefix, i.output_path),
                 }
@@ -185,7 +193,7 @@ class ScoreReport(NamedTuple):
             "leaderboard": [
                 {
                     "name": i.name,
-                    "value": i.value,
+                    "value": '{:.2f}'.format(i.value),
                     "order": i.order,
                     "is_desc": i.is_desc,
                     "suffix": i.suffix,
@@ -203,7 +211,7 @@ class ScoreReport(NamedTuple):
 
         print(
             f"{self.title}\n总分（加权）："
-            + f"{self.final_score()}/{self.final_max_score}\n",
+            + f"{self.final_score():.2f}/{self.final_max_score():.2f}\n",
             file=fp,
         )
 
@@ -213,7 +221,7 @@ class ScoreReport(NamedTuple):
         for i in self.tests:
             print(
                 f"{i.name:<{name_col_len}}"
-                + f"{i.score:>6.2f}/{i.max_score:<6.2f}"
+                + f"{i.score:>6.2f}/{i.max_score:<6.2f} "
                 + i.output,
                 file=fp,
             )

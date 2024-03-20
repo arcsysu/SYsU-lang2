@@ -1,575 +1,694 @@
-import os
+from io import TextIOWrapper
 import sys
-import json
-import gc
 import argparse
-import logging
+import subprocess as subps
 import os.path as osp
+import gc
+import json
+import yaml
+from typing import Any
+
+sys.path.append(osp.abspath(__file__ + "/../.."))
+from common import CasesHelper, ScoreReport, print_parsed_args
+
+log_level = 3
+key_inner = ["inner"]
+kind_initlist = ["InitListExpr"]
+key_ignore = ["id"]
+level1_kind = ["kind", "name", "value"]
+level2_kind = ["type"]
 
 
-class Test_Report:
+class NodeHelper:
+    """节点助手"""
 
-    def __init__(self, name, score, max_score, output, output_path=None):
-        self.name = name
-        self.score = score
-        self.max_score = max_score
-        self.output = output
-        self.output_path = output_path
+    level1_correct: bool = True
+    level2_correct: bool = True
+    level3_correct: bool = True
+    ast0: dict = None
+    ast1: dict = None
 
+    def __init__(
+        self,
+        level1_correct: bool = True,
+        level2_correct: bool = True,
+        level3_correct: bool = True,
+        ast0: dict = None,
+        ast1: dict = None,
+    ):
+        self.level1_correct = level1_correct
+        self.level2_correct = level2_correct
+        self.level3_correct = level3_correct
+        self.ast0 = ast0
+        self.ast1 = ast1
 
-class LeaderBoard_Report:
+    def to_json_noinner(self, fp: TextIOWrapper) -> None:
+        fprint(fp, "\n>---")
+        ast0_noinner = self.ast0.copy()
+        ast1_noinner = self.ast1.copy()
+        for key in ["inner", "id"]:
+            if key in ast0_noinner:
+                del ast0_noinner[key]
+            if key in ast1_noinner:
+                del ast1_noinner[key]
+        fprint(fp, "\n标准答案节点: \n" + str(ast0_noinner))
+        fprint(fp, "\n用户答案节点: \n" + str(ast1_noinner))
+        fprint(fp, "\n<---")
+        return
 
-    def __init__(self, name, value, order, is_desc=False, suffix=None):
-        self.name = name
-        self.value = value
-        self.order = order
-        self.is_desc = is_desc
-        self.suffix = suffix
+    def to_json_inner_n(self, fp: TextIOWrapper, inner_n: int) -> None:
+        fprint(fp, "\n>---")
+        ast0_copy = self.ast0.copy()
+        ast1_copy = self.ast1.copy()
+        for key in ["id"]:
+            if key in ast0_copy:
+                del ast0_copy[key]
+            if key in ast1_copy:
+                del ast1_copy[key]
+        ast0_inner_n = None
+        ast1_inner_n = None
+        for key in ["inner"]:
+            if key in ast0_copy:
+                ast0_inner_n = ast0_copy[key][inner_n]
+                del ast0_copy[key]
+            if key in ast1_copy:
+                ast1_inner_n = ast1_copy[key][inner_n]
+                del ast1_copy[key]
+        fprint(fp, "\n标准答案节点: \n" + str(ast0_copy))
+        fprint(fp, "\n标准答案节点inner的第n项: \n" + str(ast0_inner_n))
+        fprint(fp, "\n用户答案节点: \n" + str(ast1_copy))
+        fprint(fp, "\n用户答案节点inner的第n项: \n" + str(ast1_inner_n))
+        fprint(fp, "\n<---")
+        return
 
+    def to_yaml(
+        self, fp: TextIOWrapper, lv: int, key_to_add: list, inner_err_idx: list
+    ) -> None:
+        fprint(fp, "\n>----------------------------对比开始----------------------------")
+        ast0_cp = dict()
+        ast1_cp = dict()
+        for key in key_to_add:
+            ast0_cp[key] = self.ast0.get(key)
+            ast1_cp[key] = self.ast1.get(key)
+        if len(inner_err_idx) > 0:
+            ast0_cp["inner"] = []
+            ast1_cp["inner"] = []
+        inner_cp_idx = 0
+        for i in inner_err_idx:
+            for j in range(inner_cp_idx, i):
+                ast0_cp["inner"].append("...")
+                ast1_cp["inner"].append("...")
+            ast0_cp["inner"].append(self.ast0["inner"][i])
+            ast1_cp["inner"].append(self.ast1["inner"][i])
+            inner_cp_idx = i + 1
+        fprint(fp, "\n标准答案节点: \n" + yaml.dump(ast0_cp))
+        fprint(fp, "\n用户答案节点: \n" + yaml.dump(ast1_cp))
+        fprint(fp, "\n<----------------------------对比结束----------------------------\n\n")
+        return
 
-class ReportsManager:
+    def to_dot(self, fp: TextIOWrapper) -> None:
+        pass
 
-    def __init__(self, task_name='task'):
-        self.tests = []
-        self.testsleaderboard = []
-        self.tests_name_max_len = 0
-        self.testsleaderboard_name_max_len = 0
-        self.task_name = task_name
+    def check_key(self, key: str, key_level: int) -> tuple:
+        value0 = self.ast0.get(key)
+        level_output = ""
+        if value0 is None:
+            return True, level_output
+        value1 = self.get_value1(key, key_level)
+        if value1 is None:
+            level_output += "\n键 '" + key + "' 在用户答案节点内不存在"
+            return False, level_output
+        if value0 != value1:
+            level_output += "\n键 '" + key + "' 错误"
+            return False, level_output
+        return True, level_output
 
-    def add_test_report(self,
-                        name,
-                        score,
-                        max_score,
-                        output,
-                        output_path=None):
-        self.tests.append(
-            Test_Report(name, score, max_score, output, output_path))
-        self.tests_name_max_len = max(self.tests_name_max_len, len(name))
+    def get_value1(self, key: str, key_level: int) -> Any:
+        # 如果 key 在 ast1 中存在，直接返回对应的值
+        if key in self.ast1:
+            return self.ast1.get(key)
+        self.level3_correct = False
+        if key_level == 2:
+            self.level2_correct = False
+        if key_level == 1:
+            self.level2_correct = False
+            self.level1_correct = False
+        return None
 
-    def add_test_report_instance(self, Test_Report):
-        self.tests.append(Test_Report)
-        self.tests_name_max_len = max(self.tests_name_max_len,
-                                      len(Test_Report.name))
+    @staticmethod
+    def filter_value0(value0: list) -> list:
+        return list(
+            filter(
+                lambda x: not x.get("isImplicit", False)
+                and not x.get("implicit", False),
+                value0,
+            )
+        )
 
-    def add_leaderboard_report(self,
-                               name,
-                               value,
-                               order=0,
-                               is_desc=False,
-                               suffix=None):
-        self.testsleaderboard.append(
-            LeaderBoard_Report(name, value, order, is_desc, suffix))
-        self.testsleaderboard_name_max_len = max(
-            self.testsleaderboard_name_max_len, len(name))
-
-    def add_leaderboard_report_instance(self, LeaderBoard_Report):
-        self.testsleaderboard.append(LeaderBoard_Report)
-        self.testsleaderboard_name_max_len = max(
-            self.testsleaderboard_name_max_len, len(LeaderBoard_Report.name))
-
-    def to_json(self):
-        # 返回一个 json 字符串，它有两个属性，一个是 test_reports，一个是 leaderboard_reports
-        # test_reports 是一个列表，每一个元素是一个字典，包含了一个测试报告的信息
-        # leaderboard_reports 是一个列表，每一个元素是一个字典，包含了一个排行榜报告的信息
-        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True)
-
-    def to_txt(self):
-        # 返回一个字符串，它包含了所有的测试报告和排行榜报告的信息
-        txt = u''
-        for leaderboard in self.testsleaderboard:
-            if leaderboard.name == '总分':
-                txt += f'{self.task_name} 总分:'.encode('utf-8').decode('utf-8')
-                txt += f'{leaderboard.value:.2f}'.encode('utf-8').decode(
-                    'utf-8')
-                if leaderboard.suffix:
-                    txt += f' {leaderboard.suffix}'.encode('utf-8').decode(
-                        'utf-8')
-                txt += '\n\n'.encode('utf-8').decode('utf-8')
-        for test in self.tests:
-            txt += f'{test.name}'.ljust(self.tests_name_max_len +
-                                        2).encode('utf-8').decode('utf-8')
-            txt += f'{test.score:.2f}'.rjust(8).encode('utf-8').decode('utf-8')
-            txt += '/'.encode('utf-8').decode('utf-8')
-            txt += f'{test.max_score:.2f}'.ljust(8).encode('utf-8').decode(
-                'utf-8')
-            txt += f'{test.output}'.ljust(20).encode('utf-8').decode('utf-8')
-            txt += '\n'.encode('utf-8').decode('utf-8')
-        return txt
-
-
-class CustomFilter(logging.Filter):
-
-    def __init__(self,
-                 name: str = "",
-                 condition_dict: dict = {},
-                 condition: str = None) -> None:
-        super().__init__(name)
-        self.condition_dict = condition_dict
-        self.condition = condition
-
-    def filter(self, record):
-        return self.condition_dict[self.condition]
-
-
-def check_and_get_case(task2_logger, condition_dict, task2_test_dir,
-                       task2_test_weight):
-    # 判断 task2_test_dir 是否存在
-    task2_test_dir = osp.abspath(task2_test_dir)
-    if not osp.exists(task2_test_dir):
-        task2_logger.error('task2_test_dir: %s does not exist.' %
-                           task2_test_dir)
-        return 0, {}
-    # 判断 task2_test_weight 是否存在
-    if not osp.exists(task2_test_weight):
-        task2_logger.error('task2_test_weight: %s does not exist.' %
-                           task2_test_weight)
-        return 0, {}
-
-    task2_test_weight_dict = {}
-    try:
-        with open(task2_test_weight, 'r') as f:
-            for line in f:
-                case_line = line.strip().split()
-                if len(case_line) == 2:
-                    case = case_line[0]
-                    weight = case_line[1]
-                    task2_test_weight_dict[case] = float(weight)
-                elif len(case_line) == 1:
-                    case = case_line[0]
-                    task2_test_weight_dict[case] = 1.0
-    except Exception as e:
-        task2_logger.error('task2_test_weight: %s format error.' %
-                           task2_test_weight)
-        task2_logger.error(e)
-        return 0, {}
-
-    return 1, task2_test_weight_dict
+    @staticmethod
+    def filter_ast(ast: dict) -> None:
+        if ast_inner := ast.get("inner"):
+            for i in ast_inner:
+                NodeHelper.filter_ast(i)
+            ast["inner"] = NodeHelper.filter_value0(ast_inner)
 
 
-def make_weighted_averge(now_weighted_averge, now_weights_sum, new_value,
-                         new_weight):
-    new_weights_sum = now_weights_sum + new_weight
-    new_weighted_averge = now_weighted_averge + (
-        new_value - now_weighted_averge) * new_weight * 1.0 / new_weights_sum
-    return new_weighted_averge, new_weights_sum
+class AstHelper:
+    """语法树助手"""
+
+    all_count: int = 0
+    level1_all_count: int = 0
+    level1_correct_count: int = 0
+    level2_correct_count: int = 0
+    level3_correct_count: int = 0
+
+    def __init__(
+        self,
+        all_count: int = 0,
+        level1_all_count: int = 0,
+        level1_correct_count: int = 0,
+        level2_correct_count: int = 0,
+        level3_correct_count: int = 0,
+    ):
+        self.all_count = all_count
+        self.level1_all_count = level1_all_count
+        self.level1_correct_count = level1_correct_count
+        self.level2_correct_count = level2_correct_count
+        self.level3_correct_count = level3_correct_count
+
+    def inc_all_count(self):
+        self.all_count += 1
+
+    def inc_l1_all_count(self):
+        self.level1_all_count += 1
+
+    def inc_l1_correct_count(self):
+        self.level1_correct_count += 1
+
+    def inc_l2_correct_count(self):
+        self.level2_correct_count += 1
+
+    def inc_l3_correct_count(self):
+        self.level3_correct_count += 1
 
 
-def output_node(n, ast0, ast1, task2_logger: logging.Logger):
-    task2_logger.error('\n>---')
-    ast0_noinner = ast0.copy()
-    ast1_noinner = ast1.copy()
-    for key in ["inner", "id"]:
-        if key in ast0_noinner:
-            del ast0_noinner[key]
-        if key in ast1_noinner:
-            del ast1_noinner[key]
-    task2_logger.error('标准答案节点: \n' + str(ast0_noinner))
-    task2_logger.error('用户答案节点: \n' + str(ast1_noinner))
-    task2_logger.error('\n<---')
-    return n
+class Error(Exception):
+    pass
 
 
-def output_node_include_inner(n, ast0, ast1, inner_n,
-                              task2_logger: logging.Logger):
-    task2_logger.error('\n>---')
-    ast0_copy = ast0.copy()
-    ast1_copy = ast1.copy()
-    for key in ["id"]:
-        if key in ast0_copy:
-            del ast0_copy[key]
-        if key in ast1_copy:
-            del ast1_copy[key]
-    ast0_inner_n = None
-    ast1_inner_n = None
-    for key in ["inner"]:
-        if key in ast0_copy:
-            ast0_inner_n = ast0_copy[key][inner_n]
-            del ast0_copy[key]
-        if key in ast1_copy:
-            ast1_inner_n = ast1_copy[key][inner_n]
-            del ast1_copy[key]
-    task2_logger.error('标准答案节点: \n' + str(ast0_copy) + '\n')
-    task2_logger.error('标准答案节点inner的第n项: \n' + str(ast0_inner_n) + '\n')
-    task2_logger.error('用户答案节点: \n' + str(ast1_copy) + '\n')
-    task2_logger.error('用户答案节点inner的第n项: \n' + str(ast1_inner_n) + '\n')
-    task2_logger.error('\n<---')
-    return n
+def fprint(fp: TextIOWrapper, *args) -> None:
+    """输出到fp指向的流
+
+    :param TextIOWrapper fp: 输出流
+    :param Any args: 输出的内容
+    """
+    print(*args, file=fp)
 
 
-def get_value1(key, ast0, ast1, task2_test_log_level, level1_kind, level2_kind,
-               correct_dict):
-    if key not in ast1:
-        if key not in level1_kind \
-                and key not in level2_kind \
-                and task2_test_log_level >= 3:
-            task2_logger.error("\nERROR: 键 '" + key + "' 在用户答案节点内不存在")
-            output_node(1, ast0, ast1, task2_logger)
-        correct_dict["level3_correct"] = False
-        if key in level2_kind:
-            correct_dict["level2_correct"] = False
-            if task2_test_log_level >= 2:
-                task2_logger.error("\nERROR: 键 '" + key + "' 在用户答案节点内不存在")
-                output_node(1, ast0, ast1, task2_logger)
-        if key in level1_kind:
-            correct_dict["level2_correct"] = False
-            correct_dict["level1_correct"] = False
-            if task2_test_log_level >= 1:
-                task2_logger.error("\nERROR: 键 '" + key + "' 在用户答案节点内不存在")
-                output_node(1, ast0, ast1, task2_logger)
-    return ast1.get(key)
+def get_key_level(key: str, kind: str) -> int:
+    """获取键值的等级
+
+    :param str key: 键值
+    :return int: 返回键值的等级
+    """
+    if key in level1_kind:
+        return 1
+    if key in level2_kind:
+        return 2
+    if key in key_inner:
+        if kind in kind_initlist:
+            return 2
+        return 1
+    return 3
 
 
-def check_ast(ast0, ast1, ast_info, status, task2_logger: logging.Logger,
-              task2_test_log_level):
-    key_inner = ["inner"]
-    key_ignore = ["id"]
-    level1_kind = ["kind", "name", "value"]
-    level2_kind = ["type", "InitListExpr"]
-    ast_info["nodes_count"] += 1
+def check_ast(
+    ast0: Any, ast1: Any, ast_helper: AstHelper, status: int, fp: TextIOWrapper
+) -> dict:
+    """比较两个 ast 是否相同，采用深度优先遍历
 
-    # 用于记录每一个节点不同等级的正确性
-    correct_dict = dict()
-    correct_dict["level1_correct"] = True
-    correct_dict["level2_correct"] = True
-    correct_dict["level3_correct"] = True
+    :param Any ast0: 标准答案的子树
+    :param Any ast1: 输出结果的子树
+    :param AstHelper ast_helper: 语法树助手
+    :param int status: 状态
+        0: 正常，未在 InitListExpr 中
+        1: 错误，未在 InitListExpr 中
+        2: 正常，在 InitListExpr 中
+        3: 错误，在 InitListExpr 中
+    :param TextIOWrapper fp: 输出文件
+    :return NodeHelper node_helper: 节点助手，记录每一个节点不同等级的正确性
+    """
 
-    if status == 1:
-        # status 为 1 时，说明 ast1 在之前已经不匹配了，但还是需要遍历所有节点统计节点数
-        for key, value0 in ast0.items():
-            if key in key_inner:
-                value0 = list(
-                    filter(
-                        lambda x: not x.get("isImplicit", False) and not x.get(
-                            "implicit", False), value0))
-                for i in range(len(value0)):
-                    check_ast(value0[i], None, ast_info, 1,
-                              task2_test_log_level)
-        correct_dict["level1_correct"] = False
-        correct_dict["level2_correct"] = False
-        correct_dict["level3_correct"] = False
-        return correct_dict
+    ast_helper.inc_all_count()
+    if status == 0 or status == 1:
+        ast_helper.inc_l1_all_count()
 
+    # status 为 1 或者 3 时，说明 ast1 在之前已经不匹配了，但还是需要遍历所有节点统计总的节点数
+    if status == 1 or status == 3:
+        node_helper = NodeHelper(False, False, False, ast0, ast1)
+        # 如果有 inner 节点，需要继续遍历
+        if value0 := ast0.get("inner"):
+            value0 = NodeHelper.filter_value0(value0)
+            son_err_status = status
+            if get_key_level("inner", ast0.get("kind")) == 2:
+                son_err_status = 3
+            for i in range(len(value0)):
+                # 遍历 inner 的每一项
+                check_ast(value0[i], None, ast_helper, son_err_status, fp)
+        return node_helper
+
+    # 如果 ast0 和 ast1 的类型不同，直接返回错误
     if type(ast0) is not type(ast1):
-        if task2_test_log_level >= 1:
-            task2_logger.error("\nERROR: 节点类型错误")
-            output_node(1, ast0, ast1, task2_logger)
-        check_ast(ast0, None, ast_info, 1, task2_logger, task2_test_log_level)
-        correct_dict["level1_correct"] = False
-        correct_dict["level2_correct"] = False
-        correct_dict["level3_correct"] = False
-        return correct_dict
+        fprint(fp, "\n节点类型错误")
+        node_helper = NodeHelper(False, False, False, ast0, None)
+        fprint(fp, "\n>------------------------------------------------------------")
+        fprint(fp, "\n标准答案节点: \n" + yaml.dump(ast0))
+        fprint(fp, "\n<------------------------------------------------------------")
+        # 如果有 inner 节点，需要继续遍历
+        if value0 := ast0.get("inner"):
+            value0 = NodeHelper.filter_value0(value0)
+            son_err_status = status
+            if get_key_level("inner", ast0.get("kind")) == 2:
+                son_err_status = 3
+            for i in range(len(value0)):
+                # 遍历 inner 的每一项
+                check_ast(value0[i], None, ast_helper, son_err_status, fp)
+        return node_helper
 
+    node_helper = NodeHelper(True, True, True, ast0, ast1)
+
+    # new--------------------------------------------------------
+    # level3 为除了level1和level2之外的键
+    level3_kind = [
+        key
+        for key in ast0.keys()
+        if key not in level1_kind
+        and key not in key_inner
+        and key not in level2_kind
+        and key not in key_ignore
+    ]
+    def check_inner():
+        def goon_check_ast():
+            for i in range(len(value0)):
+                son_node_helper = check_ast(
+                    value0[i], None, ast_helper, son_err_status, fp
+                )
+
+        nonlocal level_output, key_level, ast_helper, son_err_status, fp
+        key = "inner"
+        value0 = ast0.get(key)
+        value1 = node_helper.get_value1(key, key_level)
+        if value1 is None:
+            level_output += "\n键 'inner' 在用户答案节点内不存在"
+            goon_check_ast()
+        else:
+            value0 = NodeHelper.filter_value0(value0)
+            value1 = NodeHelper.filter_value0(value1)
+            if len(value0) != len(value1):
+                level_output += "\ninner 长度不匹配"
+                level_output += "\n标准答案节点 inner 长度: " + str(len(value0))
+                level_output += "\n用户答案节点 inner 长度: " + str(len(value1))
+                goon_check_ast()
+            else:
+                for i in range(len(value0)):
+                    son_node_helper = check_ast(
+                        value0[i], value1[i], ast_helper, inner_status, fp
+                    )
+                    if (
+                        son_node_helper.level1_correct
+                        and son_node_helper.level2_correct
+                        and son_node_helper.level3_correct
+                    ):
+                        continue
+                    node_helper.level3_correct = False
+                    if inner_status == 0 and not son_node_helper.level1_correct:
+                        # 暂时不把level2也置为False
+                        # node_helper.level2_correct = False
+                        node_helper.level1_correct = False
+                        level_output += "\ninner 错误，第" + str(i) + "项"
+                    if inner_status == 2 and not son_node_helper.level2_correct:
+                        node_helper.level2_correct = False
+                        level_output += "\ninner 错误，第" + str(i) + "项"
+                    inner_err_idx.append(i)
+
+    level_output = "本节点情况 level 1: "
+    key_level = 1
+    inner_err_idx = []
+    key_err = ["kind", "name", "value", "id"]
+    for key in level1_kind:
+        key_cor, level_app_output = node_helper.check_key(key, key_level)
+        level_output += level_app_output
+        if not key_cor:
+            key_err.append(key)
+    if ast0.get("inner") is not None and ast0.get("kind") not in kind_initlist:
+        inner_status = 0
+        son_err_status = 1
+        check_inner()
+    # 输出 level_output
+    if level_output != "本节点情况 level 1: " and log_level >= 1:
+        fprint(fp, level_output)
+        node_helper.to_yaml(fp, key_level, key_err, inner_err_idx)
+
+    level_output = "本节点情况 level 2: "
+    key_level = 2
+    inner_err_idx = []
+    key_err = ["kind", "name", "value", "id"]
+    for key in level2_kind:
+        key_cor, level_app_output = node_helper.check_key(key, key_level)
+        level_output += level_app_output
+        if not key_cor:
+            key_err.append(key)
+    if ast0.get("inner") is not None and ast0.get("kind") in kind_initlist:
+        inner_status = 2
+        son_err_status = 3
+        check_inner()
+    # 输出 level_output
+    if level_output != "本节点情况 level 2: " and log_level >= 2:
+        fprint(fp, level_output)
+        node_helper.to_yaml(fp, key_level, key_err, inner_err_idx)
+
+    level_output = "本节点情况 level 3: "
+    key_level = 3
+    inner_err_idx = []
+    key_err = ["kind", "name", "value", "id"]
+    for key in level3_kind:
+        key_cor, level_app_output = node_helper.check_key(key, key_level)
+        level_output += level_app_output
+        if not key_cor:
+            key_err.append(key)
+    # 输出 level_output
+    if level_output != "本节点情况 level 3: " and log_level >= 3:
+        fprint(fp, level_output)
+        node_helper.to_yaml(fp, key_level, key_err, inner_err_idx)
+    # new--------------------------------------------------------
+
+    """# old--------------------------------------------------------
+    # 遍历 ast0 的每一个键值对
     for key, value0 in ast0.items():
         if key in key_ignore:
             continue
 
+        key_level = get_key_level(key, ast0.get("kind"))
+        value1 = node_helper.get_value1(key, key_level)
+        # 如果是 inner 节点，需要继续遍历
         if key in key_inner:
-            value0 = list(
-                filter(
-                    lambda x: not x.get("isImplicit", False) and not x.get(
-                        "implicit", False), value0))
-            value1 = get_value1(key, ast0, ast1, task2_test_log_level,
-                                level1_kind, level2_kind, correct_dict)
+            value0 = NodeHelper.filter_value0(value0)
             if value1 is None:
+                son_status = 3 if key_level == 2 else 1
                 for i in range(len(value0)):
-                    son_correct_dict = check_ast(value0[i], None, ast_info, 1,
-                                                 task2_logger,
-                                                 task2_test_log_level)
+                    son_node_helper = check_ast(
+                        value0[i], None, ast_helper, son_status, fp
+                    )
                 continue
             value1 = list(
                 filter(
-                    lambda x: not x.get("isImplicit", False) and not x.get(
-                        "implicit", False), value1))
+                    lambda x: not x.get("isImplicit", False)
+                    and not x.get("implicit", False),
+                    value1,
+                )
+            )
+            # 如果 ast0 和 ast1 的 inner 长度不同，直接返回错误
             if len(value0) != len(value1):
-                correct_dict["level3_correct"] = False
-                if key in level2_kind:
-                    correct_dict["level2_correct"] = False
-                    if task2_test_log_level >= 2:
-                        task2_logger.error("\nERROR: inner 长度不匹配")
-                        task2_logger.error("标准答案节点 inner 长度: " +
-                                           str(len(value0)))
-                        task2_logger.error("用户答案节点 inner 长度: " +
-                                           str(len(value1)))
-                        output_node(1, ast0, ast1, task2_logger)
-                        for i in range(len(value0)):
-                            son_correct_dict = check_ast(
-                                value0[i], None, ast_info, 1, task2_logger,
-                                task2_test_log_level)
+                node_helper.level3_correct = False
+                son_status = 3 if key_level == 2 else 1
+                if key_level == 2 and log_level >= 2:
+                    node_helper.level2_correct = False
+                    fprint(fp, "\ninner 长度不匹配")
+                    fprint(fp, "标准答案节点 inner 长度: " + str(len(value0)))
+                    fprint(fp, "用户答案节点 inner 长度: " + str(len(value1)))
+                    node_helper.to_json_noinner(fp)
+                if key_level == 1 and log_level >= 1:
+                    node_helper.level2_correct = False
+                    node_helper.level1_correct = False
+                    fprint(fp, "\ninner 长度不匹配")
+                    fprint(fp, "标准答案节点 inner 长度: " + str(len(value0)))
+                    fprint(fp, "用户答案节点 inner 长度: " + str(len(value1)))
+                    node_helper.to_json_noinner(fp)
+                for i in range(len(value0)):
+                    check_ast(value0[i], None, ast_helper, son_status, fp)
                 continue
+            # 遍历 inner 的每一项
             for i in range(len(value0)):
-                son_correct_dict = check_ast(value0[i], value1[i], ast_info, 0,
-                                             task2_logger,
-                                             task2_test_log_level)
-                if not son_correct_dict[
-                        "level1_correct"] or not son_correct_dict[
-                            "level2_correct"] or not son_correct_dict[
-                                "level3_correct"]:
-                    correct_dict["level3_correct"] = False
-                    if task2_test_log_level >= 3:
-                        task2_logger.error("\nERROR: inner 错误")
-                        output_node_include_inner(1, ast0, ast1, i,
-                                                  task2_logger)
-                    if ast0.get('kind') == 'InitListExpr':
-                        correct_dict["level2_correct"] = False
-                        if task2_test_log_level >= 2 and task2_logger < 3:
-                            task2_logger.error("\nERROR: inner 错误")
-                            output_node(1, ast0, ast1, i, task2_logger)
+                son_status = 2 if key_level == 2 else 0
+                son_node_helper = check_ast(
+                    value0[i], value1[i], ast_helper, son_status, fp
+                )
+                # inner 的每一项都正确，直接跳过
+                if (
+                    son_node_helper.level1_correct
+                    and son_node_helper.level2_correct
+                    and son_node_helper.level3_correct
+                ):
+                    continue
+                node_helper.level3_correct = False
+                if key_level == 2 and log_level >= 2:
+                    node_helper.level2_correct = False
+                    fprint(fp, "\ninner 错误")
+                    node_helper.to_json_inner_n(fp, i)
+                if key_level == 1 and log_level >= 1:
+                    node_helper.level2_correct = False
+                    node_helper.level1_correct = False
+                    fprint(fp, "\ninner 错误")
+                    node_helper.to_json_inner_n(fp, i)
         else:
-            value1 = get_value1(key, ast0, ast1, task2_test_log_level,
-                                level1_kind, level2_kind, correct_dict)
-            if value1 is None:
+            if value1 is None or value1 == value0:
                 continue
-            if value0 != value1:
-                if key not in level1_kind \
-                        and key not in level2_kind \
-                        and task2_test_log_level >= 3:
-                    task2_logger.error("\nERROR: 键值 '" + key + "' 错误")
-                    output_node(1, ast0, ast1, task2_logger)
-                correct_dict["level3_correct"] = False
-                if key in level2_kind:
-                    correct_dict["level2_correct"] = False
-                    if task2_test_log_level >= 2:
-                        task2_logger.error("\nERROR: 键值 '" + key + "' 错误")
-                        output_node(1, ast0, ast1, task2_logger)
-                if key in level1_kind:
-                    correct_dict["level2_correct"] = False
-                    correct_dict["level1_correct"] = False
-                    if task2_test_log_level >= 1:
-                        task2_logger.error("\nERROR: 键值 '" + key + "' 错误")
-                        output_node(1, ast0, ast1, task2_logger)
-    if correct_dict["level1_correct"]:
-        ast_info["nodes_level1_correct_count"] += 1
-    if correct_dict["level2_correct"]:
-        ast_info["nodes_level2_correct_count"] += 1
-    if correct_dict["level3_correct"]:
-        ast_info["nodes_level3_correct_count"] += 1
-    return correct_dict
+            if key_level == 3 and log_level >= 3:
+                fprint(fp, "\n键值 '" + key + "' 错误")
+                node_helper.to_json_noinner(fp)
+            node_helper.level3_correct = False
+            if key_level == 2:
+                node_helper.level2_correct = False
+                if log_level >= 2:
+                    fprint(fp, "\n键值 '" + key + "' 错误")
+                    node_helper.to_json_noinner(fp)
+            if key_level == 1:
+                node_helper.level2_correct = False
+                node_helper.level1_correct = False
+                if log_level >= 1:
+                    fprint(fp, "\n键值 '" + key + "' 错误")
+                    node_helper.to_json_noinner(fp)
+    # old--------------------------------------------------------"""
+    if node_helper.level1_correct and status == 0:
+        ast_helper.inc_l1_correct_count()
+    if node_helper.level2_correct:
+        ast_helper.inc_l2_correct_count()
+    if node_helper.level3_correct:
+        ast_helper.inc_l3_correct_count()
+    return node_helper
 
 
-def score_one_case(task2_logger, condition_dict, manager, task2_test_log_level,
-                   task2_test_dir, case):
-    # 为每一个算例单独生成一个日志文件
-    case_abs_path = osp.join(task2_test_dir, case)
-    # 创建过滤器
-    one_case_file_filter = CustomFilter(name='one_case_file_filter',
-                                        condition_dict=condition_dict,
-                                        condition='one_case_file')
+def score_one(
+    cases_helper: CasesHelper, case: CasesHelper.Case
+) -> ScoreReport.TestEntry:
+    """评测单个测例，打印出一行评测结果"""
 
-    # 创建文件处理器
-    one_case_file_path = osp.join(case_abs_path, 'score.txt')
-    file_handler = logging.FileHandler(one_case_file_path, mode='w')
-    file_handler.addFilter(one_case_file_filter)
-    file_handler.setFormatter(logging.Formatter('%(message)s'))
-    file_handler.setLevel(logging.INFO)
-    task2_logger.addHandler(file_handler)
-    condition_dict['one_case_file'] = True
-    condition_dict['all_cases_file'] = False
-    condition_dict['console'] = False
-
-    task2_logger.info('测试用例: %s' % case)
-    task2_logger.info('测试用例绝对路径: %s' % case_abs_path)
-
+    name = case.name
     score = 0.0
+    max_score = 100.0
+    output = "[PASS]"
+    weight = case.weight
+    output_path, fp = cases_helper.open_case_report(case)
+    print(output_path, end=" ... ", flush=True)
 
-    def score_one_case_exit(score):
-        task2_logger.info('分数: %f' % score)
-        condition_dict['one_case_file'] = False
-        condition_dict['all_cases_file'] = False
-        condition_dict['console'] = True
-        task2_logger.removeHandler(file_handler)
-        return score
+    with fp:
+        try:
+            # 如果没有 answer.json 文件，零分
+            std_answer_path = cases_helper.of_case_bindir("answer.json", case)
+            if not osp.exists(std_answer_path):
+                output = "没有可参考的标准答案"
+                fprint(fp, "标准参考答案文件不存在：", std_answer_path)
+                raise Error()
 
-    # 如果 case_abs_path 下没有 answer.json 文件，就返回 0
-    answer_path = osp.join(case_abs_path, 'answer.json')
-    if not osp.exists(answer_path):
-        task2_logger.error('%s 的标准答案未生成，请先生成 task2-answer' % case_abs_path)
-        score = 0.0
-        manager.add_test_report(case, score, 100.0, '标准答案未生成',
-                                one_case_file_path)
-        return score_one_case_exit(score)
+            # 如果没有 output.json 文件，零分
+            judge_answer_path = cases_helper.of_case_bindir("output.json", case)
+            if not osp.exists(judge_answer_path):
+                output = "没有输出结果"
+                fprint(fp, "输出结果文件不存在：", judge_answer_path)
+                raise Error()
 
-    # 如果 case_abs_path 下没有 output.json 文件，就返回 0
-    output_path = osp.join(case_abs_path, 'output.json')
-    if not osp.exists(output_path):
-        task2_logger.error('%s 的用户答案未生成，请调用测试查看是否能正常生成' % case_abs_path)
-        score = 0.0
-        manager.add_test_report(case, score, 100.0, '用户答案未生成',
-                                one_case_file_path)
-        return score_one_case_exit(score)
+            # 读取标准答案和输出结果
+            try:
+                with open(std_answer_path, "r") as f:
+                    std_answer = json.load(f)
+                    gc.collect()
+            except Exception as e:
+                output = "标准答案文件损坏"
+                fprint(fp, "标准答案文件损坏：", std_answer_path)
+                raise Error(e)
+            try:
+                with open(judge_answer_path, "r") as f:
+                    judge_answer = json.load(f)
+                    gc.collect()
+            except Exception as e:
+                output = "输出结果文件损坏"
+                fprint(fp, "输出结果文件损坏：", judge_answer_path)
+                raise Error(e)
 
-    # 读取 answer.json 和 output.json 文件
-    with open(answer_path, 'r') as f:
-        answers = f.read()
-    gc.collect()
-    with open(output_path, 'r') as f:
-        outputs = f.read()
-    gc.collect()
+            # 转化成 yaml 格式输出
+            try:
+                NodeHelper.filter_ast(std_answer)
+                with open(cases_helper.of_case_bindir("answer.yaml", case), "w") as f:
+                    f.write(yaml.dump(std_answer))
+            except Exception as e:
+                output = "转化为yaml失败"
+                fprint(fp, "转化为yaml失败")
+                raise Error(e)
+            try:
+                NodeHelper.filter_ast(judge_answer)
+                with open(cases_helper.of_case_bindir("output.yaml", case), "w") as f:
+                    f.write(yaml.dump(judge_answer))
+            except Exception as e:
+                output = "转化为yaml失败"
+                fprint(fp, "转化为yaml失败")
+                raise Error(e)
 
-    try:
-        ast0 = json.loads(answers)
-    except Exception as e:
-        task2_logger.error('标准答案格式错误')
-        task2_logger.error(e)
-        score = 0.0
-        manager.add_test_report(case, score, 100.0, '标准答案格式错误',
-                                one_case_file_path)
-        return score_one_case_exit(score)
-    gc.collect()
+            ast_helper = AstHelper()
+            node_helper = NodeHelper()
+            # 比较标准答案和输出结果
+            check_ast(std_answer, judge_answer, ast_helper, 0, fp)
 
-    try:
-        ast1 = json.loads(outputs)
-    except Exception as e:
-        task2_logger.error('用户答案格式错误')
-        task2_logger.error(e)
-        score = 0.0
-        manager.add_test_report(case, score, 100.0, '用户答案格式错误',
-                                one_case_file_path)
-        return score_one_case_exit(score)
-    gc.collect()
+            fprint(fp, "")
+            fprint(fp, "生成树节点总数:" + f"{ast_helper.all_count}")
+            fprint(fp, "生成树中level1节点总数:" + f"{ast_helper.level1_all_count}")
+            fprint(
+                fp,
+                "kind, name, value正确的节点数:" + f"{ast_helper.level1_correct_count}",
+            )
+            fprint(
+                fp,
+                "type, InitListExpr生成树正确的节点数:"
+                + f"{ast_helper.level2_correct_count}",
+            )
+            fprint(
+                fp,
+                "除id外其他属性全部正确的节点数:"
+                + f"{ast_helper.level3_correct_count}",
+            )
+            score = max_score * (
+                ast_helper.level1_correct_count * 0.6 / ast_helper.level1_all_count
+                + ast_helper.level2_correct_count * 0.4 / ast_helper.all_count
+            )
+            fprint(fp, f"得分：{score:.2f}/{max_score:.2f}")
 
-    status = 0
-    ast_info = dict()
-    ast_info["nodes_count"] = 0
-    # level 1 判断节点的kind，名字和值是否正确
-    ast_info["nodes_level1_correct_count"] = 0
-    # level 2 判断节点的type和"InitListExpr" 生成树是否正确
-    ast_info["nodes_level2_correct_count"] = 0
-    # level 3 判断节点的其他属性（除id属性外）是否正确
-    ast_info["nodes_level3_correct_count"] = 0
-    check_ast(ast0, ast1, ast_info, status, task2_logger, task2_test_log_level)
-    score = (ast_info["nodes_level1_correct_count"] * 0.6 +
-             ast_info["nodes_level2_correct_count"] * 0.3 +
-             ast_info["nodes_level3_correct_count"] *
-             0.1) * 1.0 / ast_info["nodes_count"] * 100.0
-    manager.add_test_report(case, score, 100.0, '测试结果请具体查看',
-                            one_case_file_path)
+        except Error:
+            pass
 
-    task2_logger.info('\nINFO: 生成树节点总数: %d' % ast_info["nodes_count"])
-    task2_logger.info('INFO: Level1 正确的节点数: %d' %
-                      ast_info["nodes_level1_correct_count"])
-    task2_logger.info('INFO: Level2 正确的节点数: %d' %
-                      ast_info["nodes_level2_correct_count"])
-    task2_logger.info('INFO: Level3 正确的节点数: %d' %
-                      ast_info["nodes_level3_correct_count"])
-    return score_one_case_exit(score)
-
-
-def score_all_case(task2_logger, condition_dict, manager, task2_test_log_level,
-                   task2_test_dir, task2_test_weight):
-
-    # 检查 task2_test_dir, task2_case_dir, task2_test_weight 是否存在, 并获取算例名字
-    flag, task2_test_weight_dict = check_and_get_case(task2_logger,
-                                                      condition_dict,
-                                                      task2_test_dir,
-                                                      task2_test_weight)
-
-    if not flag:
-        task2_logger.error('检测目录出错')
-        manager.add_test_report('检测目录', 0.0, 100.0, '检测目录出错')
-        manager.add_leaderboard_report('总分', 0.0, 0, True)
-        return 0
-
-    # 对每一个算例进行评分
-    weighted_average_score = 0.0
-    weights_sum = 0.0
-    case_idx = 1
-    case_len = len(task2_test_weight_dict)
-    for case, weight in task2_test_weight_dict.items():
-        score = score_one_case(task2_logger, condition_dict, manager,
-                               task2_test_log_level, task2_test_dir, case)
-        task2_logger.info(f'[{case_idx}/{case_len}] {case} 分数: {score:.2f}')
-        weighted_average_score, weights_sum = make_weighted_averge(
-            weighted_average_score, weights_sum, score, weight)
-        case_idx += 1
-
-    manager.add_leaderboard_report("总分", weighted_average_score, 0, True)
-    task2_logger.info(f'总分: {weighted_average_score:.2f}')
-    return 1
+    print(output)
+    return ScoreReport.TestEntry(
+        name=name,
+        score=score,
+        max_score=max_score,
+        output=output,
+        output_path=output_path,
+        weight=weight,
+    )
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('task2_test_ctest',
-                        type=str,
-                        help='task2 调用测试的可执行文件路径')
-    parser.add_argument('task2_test_dir', type=str, help='task2 的测试总目录')
-    parser.add_argument('task2_test_weight',
-                        type=str,
-                        help='保存 task2 的测试用例及权重的文件')
-    # parser.add_argument('task2_test_log_level',
-    #                     type=int,
-    #                     help='保存 task2 的测试用例及权重的文件')
+def score_all(cases_helper: CasesHelper) -> ScoreReport:
+    """评测所有测例，生成成绩单"""
+
+    score_report = ScoreReport("task2")
+
+    for case in cases_helper.cases:
+        test_entry = score_one(cases_helper, case)
+        score_report.tests.append(test_entry)
+        gc.collect()
+
+    score_report.leader_board.append(
+        ScoreReport.LeaderBoardEntry(
+            "总分",
+            score_report.final_score(),
+            0,
+            True,
+            "",
+        )
+    )
+
+    return score_report
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser("实验二评测脚本")
+    parser.add_argument("srcdir", type=str, help="测例目录")
+    parser.add_argument("bindir", type=str, help="测评输出目录")
+    parser.add_argument("cases_file", type=str, help="测例表路径")
+    parser.add_argument("ctest_exe", type=str, help="CTest 程序路径")
+    parser.add_argument("log_level", type=int, help="日志等级")
+    parser.add_argument("--single", type=str, help="运行单个测例")
     args = parser.parse_args()
-    args.task2_test_log_level = 3
-    # 判断输入参数是否合法
-    if args.task2_test_log_level < 1 or args.task2_test_log_level > 3:
-        raise ValueError('task2_test_log_level must be 1, 2 or 3.')
+    print_parsed_args(parser, args)
 
-    # 将路径转换为绝对路径
-    args.task2_test_dir = osp.abspath(args.task2_test_dir)
-    args.task2_test_weight = osp.abspath(args.task2_test_weight)
-    condition_dict = {
-        'console': True,
-        'all_cases_file': False,
-        'one_case_file': False
-    }
+    print("加载测例表...", end="", flush=True)
+    cases_helper = CasesHelper.load_file(
+        args.srcdir,
+        args.bindir,
+        args.cases_file,
+    )
+    print("完成")
 
-    # 进行 CTEST
-    os.system(f'{args.task2_test_ctest} --test-dir {args.task2_test_dir}')
-    # 生成总成绩单的日志保存到 task2_test_dir 下的 score.txt 文件中
-    all_cases_file_filter = CustomFilter(name='all_cases_file_filter',
-                                         condition_dict=condition_dict,
-                                         condition='all_cases_file')
-    scoresfile_for_all_cases = osp.abspath(
-        osp.join(args.task2_test_dir, 'score.txt'))
-    file_handler = logging.FileHandler(scoresfile_for_all_cases, mode='w')
-    file_handler.addFilter(all_cases_file_filter)
-    file_handler.setLevel(logging.INFO)
+    log_level = args.log_level
 
-    # 生成控制台的日志
-    console_filter = CustomFilter(name='console_filter',
-                                  condition_dict=condition_dict,
-                                  condition='console')
-    console_handler = logging.StreamHandler(stream=sys.stdout)
-    console_handler.addFilter(console_filter)
-    console_handler.setLevel(logging.INFO)
+    if case_name := args.single:
+        for case in cases_helper.cases:
+            if case.name == case_name:
+                break
+        else:
+            print("没有找到指定的测例：", case_name)
+            sys.exit(1)
 
-    # 设置日志格式
-    formatter = logging.Formatter('%(message)s')
-    file_handler.setFormatter(formatter)
-    console_handler.setFormatter(formatter)
+        # 通过 CTest 运行同学们的代码
+        case_outerr = cases_helper.open_case_outerr(case, "ctest")
+        out_path, out, err_path, err = case_outerr
+        print("CTest 运行日志：", out_path, err_path)
+        print("运行 CTest 以得到结果...", end="", flush=True)
+        with out, err:
+            subps.run(
+                [
+                    args.ctest_exe,
+                    "--test-dir",
+                    args.bindir,
+                    "-R",
+                    "^task2/" + case_name,
+                    # 注意这里一定不能写成 test2/，否则会无限递归下去
+                ],
+                stdout=out,
+                stderr=err,
+            )
+        print("完成")
 
-    # 设置日志产生器
-    task2_logger = logging.getLogger('task2')
-    task2_logger.setLevel(logging.INFO)
-    task2_logger.addHandler(file_handler)
-    task2_logger.addHandler(console_handler)
+        score_one(cases_helper, case)
+        print("评测结果已保存：", cases_helper.of_case_bindir("score.txt", case))
 
-    # 打印输入参数
-    task2_logger.info('Task2 测试总目录路径: %s' % args.task2_test_dir)
-    task2_logger.info('Task2 测试用例及权重文件路径: %s' % args.task2_test_weight)
-
-    task2_logger.info('-' * 40)
-    manager = ReportsManager(task_name='task2')
-    # 对 task2 的结果进行评分
-    grade_done = score_all_case(task2_logger, condition_dict, manager,
-                                args.task2_test_log_level, args.task2_test_dir,
-                                args.task2_test_weight)
-    if grade_done:
-        task2_logger.info('Task2 评分完成.')
     else:
-        task2_logger.error('Task2 评分出错.')
-    task2_logger.info('-' * 40)
-    results_txt = manager.to_txt()
-    condition_dict['all_cases_file'] = True
-    task2_logger.info(results_txt)
-    condition_dict['all_cases_file'] = False
-    task2_logger.info('评分结果已保存到: %s' % scoresfile_for_all_cases)
-    task2_logger.info('各测例的评分结果已保存到各自的 score.txt 文件中.')
+        # 通过 CTest 运行同学们的代码
+        out_path, out, err_path, err = cases_helper.open_outerr("ctest")
+        print("CTest 运行日志：", out_path, err_path)
+        print("运行 CTest 以得到结果...", end="", flush=True)
+        with out, err:
+            subps.run(
+                [args.ctest_exe, "--test-dir", args.bindir, "-R", "^task2/.*"],
+                stdout=out,
+                stderr=err,
+            )
+        print("完成")
 
-    results_json = manager.to_json()
-    jsonfile_for_all_cases = osp.abspath(
-        osp.join(args.task2_test_dir, 'score.json'))
-    with open(jsonfile_for_all_cases, 'w') as f:
-        f.write(results_json)
-    task2_logger.info('JSON格式的评分结果已保存到: %s' % jsonfile_for_all_cases)
+        # 评分，生成成绩单
+        print()
+        score_report = score_all(cases_helper)
+        print()
+
+        print("=" * 80)
+        score_report.print()
+        print("=" * 80)
+
+        # 保存成绩单
+        txt_path, f = cases_helper.open_root_report()
+        with f:
+            score_report.dump_human_text(f)
+        print("成绩单已保存：", cases_helper.of_bindir("score.txt"))
+
+        json_path, f = cases_helper.open_autograder_json()
+        with f:
+            score_report.dump_autograder(f)
+        print("JSON 格式：", cases_helper.of_bindir("score.json"))

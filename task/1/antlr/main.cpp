@@ -1,4 +1,4 @@
-#include "SYsU_lang.h" // 确保这里的头文件名与您生成的词法分析器匹配
+#include "SYsULexer.h" // 确保这里的头文件名与您生成的词法分析器匹配
 #include <fstream>
 #include <iostream>
 #include <unordered_map>
@@ -83,7 +83,7 @@ main(int argc, char* argv[])
   std::cout << "输出 '" << argv[2] << std::endl;
 
   antlr4::ANTLRInputStream input(inFile);
-  SYsU_lang lexer(&input);
+  SYsULexer lexer(&input);
 
   antlr4::CommonTokenStream tokens(&lexer);
   tokens.fill();

@@ -10,6 +10,12 @@ set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
+# 使用 Python 实现复杂的生成任务
+find_package(
+  Python3
+  COMPONENTS Interpreter
+  REQUIRED)
+
 # 任务
 add_subdirectory(task)
 

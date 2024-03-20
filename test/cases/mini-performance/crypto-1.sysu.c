@@ -113,16 +113,16 @@ void pseudo_sha1(int input[], int input_len, int output[]) {
     // main loop
     i = 0;
     while (i < 80) {
-      if (i < 20) {
+      if (i < 2) {
         f = _or(_and(b, c), _and(_not(b), d));
         k = 1518500249;
-      } else if (i < 40) {
+      } else if (i < 4) {
         f = _xor(_xor(b, c), d);
         k = 1859775361;
-      } else if (i < 60) {
+      } else if (i < 6) {
         f = _or(_or(_and(b, c), _and(b, d)), _and(c, d));
         k = -1894007588;
-      } else if (i < 80) {
+      } else if (i < 8) {
         f = _xor(_xor(b, c), d);
         k = -899497722;
       }
@@ -168,7 +168,7 @@ int main() {
   output_buf[4] = 0;
 
   while (rounds > 0) {
-    int len = 32000;
+    int len = 32;
     int i = 0;
     while (i < len) {
       buffer[i] = get_random() % 256;

@@ -76,7 +76,19 @@
     "*.inc": "cpp",
     "*.y": "cpp",
     "CMakeLists.txt": "cmake",
+    "forward_list": "cpp",
+    "future": "cpp",
+    "variant": "cpp",
+    "__functional_base": "cpp",
+    "__functional_base_03": "cpp",
+    "__hash_table": "cpp",
+    "__tree": "cpp",
+    "__tuple": "cpp",
+    "filesystem": "cpp",
+    "queue": "cpp",
+    "stack": "cpp"
   },
   "editor.unfoldOnClickAfterEndOfLine": false,
   "files.eol": "\n",
+  "autoDocstring.docstringFormat": "one-line-sphinx"
 }

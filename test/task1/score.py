@@ -7,14 +7,15 @@ import gc
 sys.path.append(osp.abspath(__file__ + "/../.."))
 from common import CasesHelper, ScoreReport, print_parsed_args
 
+log_level = 3
+
 
 class Error(Exception):
     pass
 
 
-def score_one(
-    cases_helper: CasesHelper, case: CasesHelper.Case
-) -> ScoreReport.TestEntry:
+def score_one(cases_helper: CasesHelper,
+              case: CasesHelper.Case) -> ScoreReport.TestEntry:
     """评测单个测例，打印出一行评测结果"""
 
     name = case.name
@@ -61,8 +62,8 @@ def score_one(
                 if k1 != -1 and k2 != -1:
                     flag0 = 1
                 tok0 = tmp.split()[0].strip()
-                str0 = tmp[k1 + 1 : k2].strip()
-                mid0 = str(tmp[k2 + 1 : k3].strip().split())
+                str0 = tmp[k1 + 1:k2].strip()
+                mid0 = str(tmp[k2 + 1:k3].strip().split())
                 loc0 = tmp[k3:].strip()
                 return [tok0, str0, mid0, loc0, flag0]
 
@@ -71,10 +72,8 @@ def score_one(
             output_tokens_count = len(outputs)
             if tokens_count != output_tokens_count:
                 output = "词法单元数量不一致"
-                fprint(
-                    "词法单元数量与标准答案不一致："
-                    + f"{tokens_count} != {output_tokens_count}"
-                )
+                fprint("词法单元数量与标准答案不一致：" +
+                       f"{tokens_count} != {output_tokens_count}")
                 fprint("请检查是否有遗漏或多余的词法单元")
                 raise Error()
 
@@ -107,6 +106,8 @@ def score_one(
                         continue
 
                 if tok0 != tok1:
+                    if log_level < 1:
+                        continue
                     fprint("\n词法单元 " + str(i + 1) + " 类型错误")
                     fprint("< " + tok0)
                     fprint("---")
@@ -114,6 +115,8 @@ def score_one(
                     continue
 
                 if str0 != str1:
+                    if log_level < 1:
+                        continue
                     fprint("\n词法单元 " + str(i + 1) + " 值错误")
                     fprint("< " + str0)
                     fprint("---")
@@ -123,6 +126,8 @@ def score_one(
                 tokens_kind_correct_count += 1
 
                 if loc0 != loc1:
+                    if log_level < 2:
+                        continue
                     fprint("\n词法单元 " + str(i + 1) + " 位置错误")
                     fprint("< " + loc0)
                     fprint("---")
@@ -132,6 +137,8 @@ def score_one(
                 tokens_location_correct_count += 1
 
                 if mid0 != mid1:
+                    if log_level < 3:
+                        continue
                     fprint("\n词法单元 " + str(i + 1) + " 识别无关字符错误")
                     fprint("< " + mid0)
                     fprint("---")
@@ -141,24 +148,18 @@ def score_one(
                 tokens_unrelated_correct_count += 1
 
             fprint()
-            fprint(
-                "类型及值正确的词法单元数目："
-                + f"{tokens_kind_correct_count}/{tokens_count}"
-            )
-            fprint(
-                "位置正确的词法单元数目："
-                + f"{tokens_location_correct_count}/{tokens_count}"
-            )
-            fprint(
-                "识别无关字符正确的词法单元数目："
-                + f"{tokens_unrelated_correct_count}/{tokens_count}"
-            )
+            fprint("类型及值正确的词法单元数目：" +
+                   f"{tokens_kind_correct_count}/{tokens_count}")
+            fprint("位置正确的词法单元数目：" +
+                   f"{tokens_location_correct_count}/{tokens_count}")
+            fprint("识别无关字符正确的词法单元数目：" +
+                   f"{tokens_unrelated_correct_count}/{tokens_count}")
 
             score = max_score * (
-                tokens_kind_correct_count / tokens_count * 0.6
-                + tokens_location_correct_count / tokens_count * 0.3
-                + tokens_unrelated_correct_count / tokens_count * 0.1
-            )
+                tokens_kind_correct_count / tokens_count * 0.6 +
+                tokens_location_correct_count / tokens_count * 0.3 +
+                tokens_unrelated_correct_count / tokens_count * 0.1)
+            fprint(f"得分：{score:.2f}/{max_score:.2f}")
 
         except Error:
             pass
@@ -191,8 +192,7 @@ def score_all(cases_helper: CasesHelper) -> ScoreReport:
             0,
             True,
             "",
-        )
-    )
+        ))
 
     return score_report
 
@@ -203,6 +203,7 @@ if __name__ == "__main__":
     parser.add_argument("bindir", type=str, help="测评输出目录")
     parser.add_argument("cases_file", type=str, help="测例表路径")
     parser.add_argument("ctest_exe", type=str, help="CTest 程序路径")
+    parser.add_argument("log_level", type=int, help="日志等级")
     parser.add_argument("--single", type=str, help="运行单个测例")
     args = parser.parse_args()
     print_parsed_args(parser, args)
@@ -214,6 +215,8 @@ if __name__ == "__main__":
         args.cases_file,
     )
     print("完成")
+
+    log_level = args.log_level
 
     if case_name := args.single:
         for case in cases_helper.cases:

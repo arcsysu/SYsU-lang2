@@ -1,5 +1,5 @@
 #include <sysy/sylib.h>
-const int N = 1024;
+#define N 1024
 
 void mm(int n, int A[][N], int B[][N], int C[][N]){
     int i, j, k;

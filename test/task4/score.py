@@ -1,165 +1,63 @@
-import gzip
-import json
-import os
+from io import TextIOWrapper
 import re
-import subprocess
 import sys
 import argparse
-import logging
+import subprocess as subps
 import os.path as osp
+import gc
+from typing import NamedTuple
+
+sys.path.append(osp.abspath(__file__ + "/../.."))
+from common import CasesHelper, ScoreReport, print_parsed_args
+
+TIME_OUT: int = 10
+COMP_PATH: str = None
+RTLIB_PATH: str = None
 
 
-class Test_Report:
+class CompHelper(NamedTuple):
+    compiler: str
+    rtlib_basedir: str
+    rtlib_basename: str
+    exe: str
+    src: str
 
-    def __init__(self, name, score, max_score, output, output_path=None):
-        self.name = name
-        self.score = score
-        self.max_score = max_score
-        self.output = output
-        self.output_path = output_path
-
-
-class LeaderBoard_Report:
-
-    def __init__(self, name, value, order, is_desc=False, suffix=None):
-        self.name = name
-        self.value = value
-        self.order = order
-        self.is_desc = is_desc
-        self.suffix = suffix
-
-
-class ReportsManager:
-
-    def __init__(self, task_name='task'):
-        self.tests = []
-        self.testsleaderboard = []
-        self.tests_name_max_len = 0
-        self.testsleaderboard_name_max_len = 0
-        self.task_name = task_name
-
-    def add_test_report(self,
-                        name,
-                        score,
-                        max_score,
-                        output,
-                        output_path=None):
-        self.tests.append(
-            Test_Report(name, score, max_score, output, output_path))
-        self.tests_name_max_len = max(self.tests_name_max_len, len(name))
-
-    def add_test_report_instance(self, Test_Report):
-        self.tests.append(Test_Report)
-        self.tests_name_max_len = max(self.tests_name_max_len,
-                                      len(Test_Report.name))
-
-    def add_leaderboard_report(self,
-                               name,
-                               value,
-                               order=0,
-                               is_desc=False,
-                               suffix=None):
-        self.testsleaderboard.append(
-            LeaderBoard_Report(name, value, order, is_desc, suffix))
-        self.testsleaderboard_name_max_len = max(
-            self.testsleaderboard_name_max_len, len(name))
-
-    def add_leaderboard_report_instance(self, LeaderBoard_Report):
-        self.testsleaderboard.append(LeaderBoard_Report)
-        self.testsleaderboard_name_max_len = max(
-            self.testsleaderboard_name_max_len, len(LeaderBoard_Report.name))
-
-    def to_json(self):
-        # 返回一个 json 字符串，它有两个属性，一个是 test_reports，一个是 leaderboard_reports
-        # test_reports 是一个列表，每一个元素是一个字典，包含了一个测试报告的信息
-        # leaderboard_reports 是一个列表，每一个元素是一个字典，包含了一个排行榜报告的信息
-        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True)
-
-    def to_txt(self):
-        # 返回一个字符串，它包含了所有的测试报告和排行榜报告的信息
-        txt = u''
-        for leaderboard in self.testsleaderboard:
-            if leaderboard.name == '总分':
-                txt += f'{self.task_name} 总分:'.encode('utf-8').decode('utf-8')
-                txt += f'{leaderboard.value:.2f}'.encode('utf-8').decode(
-                    'utf-8')
-                if leaderboard.suffix:
-                    txt += f' {leaderboard.suffix}'.encode('utf-8').decode(
-                        'utf-8')
-                txt += '\n\n'.encode('utf-8').decode('utf-8')
-        for test in self.tests:
-            txt += f'{test.name}'.ljust(self.tests_name_max_len +
-                                        2).encode('utf-8').decode('utf-8')
-            txt += f'{test.score:.2f}'.rjust(8).encode('utf-8').decode('utf-8')
-            txt += '/'.encode('utf-8').decode('utf-8')
-            txt += f'{test.max_score:.2f}'.ljust(8).encode('utf-8').decode(
-                'utf-8')
-            txt += f'{test.output}'.ljust(20).encode('utf-8').decode('utf-8')
-            txt += '\n'.encode('utf-8').decode('utf-8')
-        return txt
+    def get_comp_cmd(self):
+        return [
+            f"{self.compiler}",
+            "-O0",
+            f"-L{self.rtlib_basedir}",
+            "-o",
+            f"{self.exe}",
+            f"{self.src}",
+            f"-l{self.rtlib_basename}",
+        ]
 
 
-class CustomFilter(logging.Filter):
+class RunHelper(NamedTuple):
+    exe: str
 
-    def __init__(self,
-                 name: str = "",
-                 condition_dict: dict = {},
-                 condition: str = None) -> None:
-        super().__init__(name)
-        self.condition_dict = condition_dict
-        self.condition = condition
-
-    def filter(self, record):
-        return self.condition_dict[self.condition]
+    def get_run_cmd(self):
+        return [f"{self.exe}"]
 
 
-def check_and_get_case(task4_logger, condition_dict, task4_test_dir,
-                       task4_test_weight):
-    # 判断 task4_test_dir 是否存在
-    task4_test_dir = osp.abspath(task4_test_dir)
-    if not osp.exists(task4_test_dir):
-        task4_logger.error('task4_test_dir: %s does not exist.' %
-                           task4_test_dir)
-        return 0, {}
-    # 判断 task4_test_weight 是否存在
-    if not osp.exists(task4_test_weight):
-        task4_logger.error('task4_test_weight: %s does not exist.' %
-                           task4_test_weight)
-        return 0, {}
-
-    task4_test_weight_dict = {}
-    try:
-        with open(task4_test_weight, 'r') as f:
-            for line in f:
-                case_line = line.strip().split()
-                if len(case_line) == 2:
-                    case = case_line[0]
-                    weight = case_line[1]
-                    task4_test_weight_dict[case] = float(weight)
-                elif len(case_line) == 1:
-                    case = case_line[0]
-                    task4_test_weight_dict[case] = 1.0
-    except Exception as e:
-        task4_logger.error('task4_test_weight: %s format error.' %
-                           task4_test_weight)
-        task4_logger.error(e)
-        return 0, {}
-
-    return 1, task4_test_weight_dict
+class Error(Exception):
+    pass
 
 
-def make_weighted_averge(now_weighted_averge, now_weights_sum, new_value,
-                         new_weight):
-    new_weights_sum = now_weights_sum + new_weight
-    new_weighted_averge = now_weighted_averge + (
-        new_value - now_weighted_averge) * new_weight * 1.0 / new_weights_sum
-    return new_weighted_averge, new_weights_sum
+def fprint(fp: TextIOWrapper, *args) -> None:
+    """输出到fp指向的流
+
+    :param TextIOWrapper fp: 输出流
+    :param Any args: 输出的内容
+    :return None
+    """
+    print(*args, file=fp)
 
 
 def get_tm(sp):
     val = -1
-    matchObj = re.findall(b'TOTAL: (\\d*)H-(\\d*)M-(\\d*)S-(\\d*)us',
-                          sp.stderr)
+    matchObj = re.findall(b"TOTAL: (\\d*)H-(\\d*)M-(\\d*)S-(\\d*)us", sp.stderr)
     if len(matchObj) == 0:
         return val
     matchObj = matchObj[-1]
@@ -170,327 +68,306 @@ def get_tm(sp):
     return val
 
 
-def score_one_case(task4_logger, condition_dict, manager, task4_test_log_level,
-                   task4_test_dir, case, task4_test_clang,
-                   task4_test_rtlib_path, task4_test_timeout):
-    # 为每一个算例单独生成一个日志文件
-    case_abs_path = osp.join(task4_test_dir, case)
+def score_one(
+    cases_helper: CasesHelper, case: CasesHelper.Case
+) -> ScoreReport.TestEntry:
+    """评测单个测例，打印出一行评测结果"""
 
-    # 创建过滤器
-    one_case_file_filter = CustomFilter(name='one_case_file_filter',
-                                        condition_dict=condition_dict,
-                                        condition='one_case_file')
-
-    # 创建文件处理器
-    one_case_file_path = osp.join(case_abs_path, 'score.txt')
-    file_handler = logging.FileHandler(one_case_file_path, mode='w')
-    file_handler.addFilter(one_case_file_filter)
-    file_handler.setFormatter(logging.Formatter('%(message)s'))
-    file_handler.setLevel(logging.INFO)
-    task4_logger.addHandler(file_handler)
-    condition_dict['one_case_file'] = True
-    condition_dict['all_cases_file'] = False
-    condition_dict['console'] = False
-
-    task4_logger.info('测试用例: %s' % case)
-    task4_logger.info('测试用例绝对路径: %s' % case_abs_path)
-
+    name = case.name
     score = 0.0
+    max_score = 100.0
+    output = "[PASS]"
+    weight = case.weight
+    output_path, fp = cases_helper.open_case_report(case)
+    input_path, input_fp = cases_helper.open_case_input(case)
+    print(output_path, end=" ... ", flush=True)
 
-    def score_one_case_exit(score):
-        task4_logger.info('分数: %f' % score)
-        condition_dict['one_case_file'] = False
-        condition_dict['all_cases_file'] = False
-        condition_dict['console'] = True
-        task4_logger.removeHandler(file_handler)
-        return score
+    with fp:
+        try:
+            # 如果没有 answer.ll 文件，零分
+            std_answer_path = cases_helper.of_case_bindir("answer.ll", case)
+            if not osp.exists(std_answer_path):
+                output = "没有可参考的标准答案"
+                fprint(fp, "标准参考答案文件不存在：", std_answer_path)
+                raise Error()
 
-    # 如果 case_abs_path 下没有 answer.ll 文件，就返回 0
-    answer_path = osp.join(case_abs_path, 'answer.ll')
-    if not osp.exists(answer_path):
-        task4_logger.error('%s 的标准答案未生成，请先生成 task4-answer' % case_abs_path)
-        score = 0.0
-        manager.add_test_report(case, score, 100.0, '标准答案未生成',
-                                one_case_file_path)
-        return score_one_case_exit(score)
+            # 如果没有 output.ll 文件，零分
+            judge_answer_path = cases_helper.of_case_bindir("output.ll", case)
+            if not osp.exists(judge_answer_path):
+                output = "没有输出结果"
+                fprint(fp, "输出结果文件不存在：", judge_answer_path)
+                raise Error()
 
-    # 如果 case_abs_path 下没有 output.ll 文件，就返回 0
-    output_path = osp.join(case_abs_path, 'output.ll')
-    if not osp.exists(output_path):
-        task4_logger.error('%s 的用户答案未生成，请调用测试查看是否能正常生成' % case_abs_path)
-        score = 0.0
-        manager.add_test_report(case, score, 100.0, '用户答案未生成',
-                                one_case_file_path)
-        return score_one_case_exit(score)
-
-    # 计算评分
-    try:
-        inputs = None
-        gz = osp.join(case_abs_path, "answer.in.gz")
-        if osp.exists(gz):
+            # 尝试编译标准答案
             try:
-                with gzip.open(gz, "rb") as f:
-                    inputs = f.read()
-            except gzip.BadGzipFile as e:
-                task4_logger.error('读取输入文件出错')
-                task4_logger.error(e)
+                ac_out_path, ac_out, ac_err_path, ac_err = (
+                    cases_helper.open_case_outerr(case, "answer_comp")
+                )
+                comp_helper = CompHelper(
+                    compiler=COMP_PATH,
+                    rtlib_basedir=osp.dirname(RTLIB_PATH),
+                    rtlib_basename=osp.splitext(osp.basename(RTLIB_PATH))[0][3:],
+                    exe=cases_helper.of_case_bindir("answer_exe", case),
+                    src=std_answer_path,
+                )
+                subps.run(
+                    comp_helper.get_comp_cmd(),
+                    stdout=ac_out,
+                    stderr=ac_err,
+                    timeout=TIME_OUT,
+                )
+            except Exception as e:
+                output = "编译标准答案时出错"
+                fprint(fp, "编译标准答案时出错：", e)
+                fprint(fp, "出错行数：", e.__traceback__.tb_lineno)
+                raise Error(e)
+            # 尝试运行标准答案
+            try:
+                run_helper = RunHelper(
+                    exe=cases_helper.of_case_bindir("answer_exe", case)
+                )
+                std_run_re = subps.run(
+                    run_helper.get_run_cmd(),
+                    stdin=input_fp,
+                    stdout=subps.PIPE,
+                    stderr=subps.PIPE,
+                    timeout=TIME_OUT,
+                )
+            except subps.TimeoutExpired as e:
+                output = "运行标准答案超时"
+                fprint(fp, "运行标准答案超时：", e)
+                raise Error(e)
+            except Exception as e:
+                output = "运行标准答案时出错"
+                fprint(fp, "运行标准答案时出错：", e)
+                fprint(fp, "出错行数：", e.__traceback__.tb_lineno)
+                raise Error(e)
+            # 输出运行结果
+            fprint(
+                fp,
+                f"clang -O3 代码执行用时: {get_tm(std_run_re)}us, 返回值 {std_run_re.returncode}",
+            )
+            # 写回标准答案的输出
+            ar_out_path, ar_out, ar_err_path, ar_err = cases_helper.open_case_outerr(
+                case, "answer_run"
+            )
+            with ar_out, ar_err:
+                ar_out.write(std_run_re.stdout)
+                ar_err.write(std_run_re.stderr)
+
+            # 尝试编译用户答案
+            try:
+                jc_out_path, jc_out, jc_err_path, jc_err = (
+                    cases_helper.open_case_outerr(case, "output_comp")
+                )
+                comp_helper = CompHelper(
+                    compiler=COMP_PATH,
+                    rtlib_basedir=osp.dirname(RTLIB_PATH),
+                    rtlib_basename=osp.splitext(osp.basename(RTLIB_PATH))[0][3:],
+                    exe=cases_helper.of_case_bindir("output_exe", case),
+                    src=std_answer_path,
+                )
+                subps.run(
+                    comp_helper.get_comp_cmd(),
+                    stdout=jc_out,
+                    stderr=jc_err,
+                    timeout=TIME_OUT,
+                )
+            except Exception as e:
+                output = "编译输出结果时出错"
+                fprint(fp, "编译输出结果时出错：", e)
+                fprint(fp, "出错行数：", e.__traceback__.tb_lineno)
+                raise Error(e)
+            # 尝试运行用户答案
+            try:
+                run_helper = RunHelper(
+                    exe=cases_helper.of_case_bindir("output_exe", case)
+                )
+                judge_run_re = subps.run(
+                    run_helper.get_run_cmd(),
+                    stdin=input_fp,
+                    stdout=subps.PIPE,
+                    stderr=subps.PIPE,
+                    timeout=TIME_OUT,
+                )
+            except subps.TimeoutExpired as e:
+                output = "运行输出结果超时"
+                fprint(fp, "运行输出结果超时：", e)
+                raise Error(e)
+            except Exception as e:
+                output = "运行输出结果时出错"
+                fprint(fp, "运行输出结果时出错：", e)
+                fprint(fp, "出错行数：", e.__traceback__.tb_lineno)
+                raise Error(e)
+            # 输出运行结果
+            fprint(
+                fp,
+                f"sysu-lang 代码执行用时: {get_tm(judge_run_re)}us, 返回值 {judge_run_re.returncode}",
+            )
+            # 写回用户答案的输出
+            jr_out_path, jr_out, jr_err_path, jr_err = cases_helper.open_case_outerr(
+                case, "output_run"
+            )
+            with jr_out, jr_err:
+                jr_out.write(judge_run_re.stdout)
+                jr_err.write(judge_run_re.stderr)
+
+            # 比较返回值
+            if std_run_re.returncode != judge_run_re.returncode:
+                fprint(fp, "\n返回值不匹配")
+                fprint(fp, ">----")
+                fprint(fp, "标准答案返回值: %d" % std_run_re.returncode)
+                fprint(fp, "用户答案返回值: %d" % judge_run_re.returncode)
+                fprint(fp, "<----")
+                output = "返回值不匹配"
+                raise Error()
+            # 比较输出
+            if std_run_re.stdout != judge_run_re.stdout:
+                fprint(fp, "\n输出不匹配")
+                fprint(fp, ">----")
+                fprint(fp, "标准答案输出: %s" % std_run_re.stdout)
+                fprint(fp, "用户答案输出: %s" % judge_run_re.stdout)
+                fprint(fp, "<----")
+                output = "输出不匹配"
+                raise Error()
+
+            std_run_time = get_tm(std_run_re)
+            judge_run_time = get_tm(judge_run_re)
+            if std_run_time == -1:
+                output = "标准答案未计时"
+                raise Error()
+            if judge_run_time == -1:
+                output = "用户答案未计时"
+                raise Error()
+            if judge_run_time == 0:
+                score = max_score
+            elif std_run_time == 0:
                 score = 0.0
-                manager.add_test_report(case, score, 100.0, '读取输入文件出错',
-                                        one_case_file_path)
-                return score_one_case_exit(score)
-        answer_exe = osp.join(case_abs_path, 'answer.out')
-        output_exe = osp.join(case_abs_path, 'output.out')
+            else:
+                score = max_score * (get_tm(std_run_re) * 1.0 / get_tm(judge_run_re) * 1.0)
+            fprint(fp, "")
+            fprint(fp, f"得分：{score:.2f}/{max_score:.2f}")
 
-        try:
-            answer_comp_result = subprocess.run([
-                task4_test_clang, "-O0", "-L" + task4_test_rtlib_path, "-o",
-                answer_exe, answer_path, "-ltest-rtlib"
-            ],
-                                                stdout=subprocess.PIPE,
-                                                stderr=subprocess.PIPE,
-                                                timeout=task4_test_timeout)
-        except subprocess.TimeoutExpired as e:
-            raise subprocess.TimeoutExpired(e.cmd, task4_test_timeout, None,
-                                            "编译标准答案超时")
-        except Exception as e:
-            raise e
-        if answer_comp_result is None or answer_comp_result.returncode:
-            task4_logger.error('\nERROR: 编译标准答案失败')
-            task4_logger.error(answer_comp_result)
-            score = 0.0
-            manager.add_test_report(case, score, 100.0, '编译标准答案失败',
-                                    one_case_file_path)
-            return score_one_case_exit(score)
-        try:
-            answer_exec_result = subprocess.run([answer_exe],
-                                                input=inputs,
-                                                stdout=subprocess.PIPE,
-                                                stderr=subprocess.PIPE,
-                                                timeout=task4_test_timeout)
-        except subprocess.TimeoutExpired as e:
-            raise subprocess.TimeoutExpired(e.cmd, task4_test_timeout, None,
-                                            "运行标准答案超时")
-        except Exception as e:
-            raise e
-        answer_log = "clang -O0 代码执行用时: {}us, 返回值 {}".format(
-            get_tm(answer_exec_result), answer_exec_result.returncode)
-        task4_logger.info(answer_log)
-        answer_stdout = osp.join(case_abs_path, "answer_stdout")
-        with open(answer_stdout, 'w') as f:
-            f.write(answer_exec_result.stdout.decode())
+        except Error:
+            pass
 
-        try:
-            output_comp_result = subprocess.run([
-                task4_test_clang, "-O0", "-L" + task4_test_rtlib_path, "-o",
-                output_exe, output_path, "-ltest-rtlib"
-            ],
-                                                stdout=subprocess.PIPE,
-                                                stderr=subprocess.PIPE,
-                                                timeout=task4_test_timeout)
-        except subprocess.TimeoutExpired as e:
-            raise subprocess.TimeoutExpired(e.cmd, task4_test_timeout, None,
-                                            "编译用户答案超时")
-        except Exception as e:
-            raise e
-        if output_comp_result is None or output_comp_result.returncode:
-            task4_logger.error('\nERROR: 编译用户答案失败')
-            task4_logger.error(output_comp_result)
-            score = 0.0
-            manager.add_test_report(case, score, 100.0, '编译用户答案失败',
-                                    one_case_file_path)
-            return score_one_case_exit(score)
-        try:
-            output_exec_result = subprocess.run([output_exe],
-                                                input=inputs,
-                                                stdout=subprocess.PIPE,
-                                                stderr=subprocess.PIPE,
-                                                timeout=task4_test_timeout)
-        except subprocess.TimeoutExpired as e:
-            raise subprocess.TimeoutExpired(e.cmd, task4_test_timeout, None,
-                                            "运行标准答案超时")
-        except Exception as e:
-            raise e
-        output_log = "sysu-lang 代码执行用时: {}us, 返回值 {}".format(
-            get_tm(output_exec_result), output_exec_result.returncode)
-        task4_logger.info(output_log)
-        output_stdout = osp.join(case_abs_path, "output_stdout")
-        with open(output_stdout, 'w') as f:
-            f.write(output_exec_result.stdout.decode())
-
-        if answer_exec_result.returncode != output_exec_result.returncode:
-            task4_logger.info("\n返回值不匹配")
-            task4_logger.info(">----")
-            task4_logger.info("标准答案返回值: %d" % answer_exec_result.returncode)
-            task4_logger.info("用户答案返回值: %d" % output_exec_result.returncode)
-            task4_logger.info("<----")
-            score = 0.0
-            manager.add_test_report(case, score, 100.0, '返回值不匹配',
-                                    one_case_file_path)
-            return score_one_case_exit(score)
-
-        if answer_exec_result.stdout != output_exec_result.stdout:
-            task4_logger.info("\n输出不匹配")
-            task4_logger.info(">----")
-            task4_logger.info("标准答案输出: %s" % answer_exec_result.stdout)
-            task4_logger.info("用户答案输出: %s" % output_exec_result.stdout)
-            task4_logger.info("<----")
-            score = 0.0
-            manager.add_test_report(case, score, 100.0, '输出不匹配',
-                                    one_case_file_path)
-            return score_one_case_exit(score)
-
-    except subprocess.TimeoutExpired as e:
-        task4_logger.error(f'{e.stderr}超时')
-        score = 0.0
-        manager.add_test_report(case, score, 100.0, e.stderr,
-                                one_case_file_path)
-        return score_one_case_exit(score)
-    except Exception as e:
-        # 输出异常信息，及在哪一行出现的异常
-        task4_logger.error('评分出错')
-        task4_logger.error(e)
-        task4_logger.error('出错位置: %s' % e.__traceback__.tb_lineno)
-        task4_logger.error('出错文件: %s' %
-                           e.__traceback__.tb_frame.f_globals['__file__'])
-        score = 0.0
-        manager.add_test_report(case, score, 100.0, '评分出错', one_case_file_path)
-        return score_one_case_exit(score)
-
-    task4_logger.info('\nINFO: 测试用例 %s 通过' % case)
-    # 计算评分
-    score = get_tm(answer_exec_result) * 1.0 / get_tm(output_exec_result)
-    manager.add_test_report(case, score, 100.0, '测试通过', one_case_file_path)
-    return score_one_case_exit(score)
+    print(output)
+    return ScoreReport.TestEntry(
+        name=name,
+        score=score,
+        max_score=max_score,
+        output=output,
+        output_path=output_path,
+        weight=weight,
+    )
 
 
-def score_all_case(task4_logger, condition_dict, manager, task4_test_log_level,
-                   task4_test_dir, task4_test_weight, task4_test_clang,
-                   task4_test_rtlib_path, task4_test_timeout):
-    # 检查 task4_test_dir, task4_case_dir, task4_test_weight 是否存在, 并获取算例名字
-    flag, task4_test_weight_dict = check_and_get_case(task4_logger,
-                                                      condition_dict,
-                                                      task4_test_dir,
-                                                      task4_test_weight)
+def score_all(cases_helper: CasesHelper) -> ScoreReport:
+    """评测所有测例，生成成绩单"""
 
-    if not flag:
-        task4_logger.error('检测目录出错')
-        manager.add_test_report('检测目录', 0.0, 100.0, '检测目录出错')
-        manager.add_leaderboard_report('总分', 0.0, 0, True)
-        return 0
+    score_report = ScoreReport("task2")
 
-    # 对每一个算例进行评分
-    weighted_average_score = 0.0
-    weights_sum = 0.0
-    case_idx = 1
-    case_len = len(task4_test_weight_dict)
-    for case, weight in task4_test_weight_dict.items():
-        score = score_one_case(task4_logger, condition_dict, manager,
-                               task4_test_log_level, task4_test_dir, case,
-                               task4_test_clang, task4_test_rtlib_path,
-                               task4_test_timeout)
-        task4_logger.info(f'[{case_idx}/{case_len}] {case} 分数: {score:.2f}')
-        weighted_average_score, weights_sum = make_weighted_averge(
-            weighted_average_score, weights_sum, score, weight)
-        case_idx += 1
+    for case in cases_helper.cases:
+        test_entry = score_one(cases_helper, case)
+        score_report.tests.append(test_entry)
+        gc.collect()
 
-    manager.add_leaderboard_report("总分", weighted_average_score, 0,
-                                   True)
-    task4_logger.info(f'总分: {weighted_average_score:.2f}')
-    return 1
+    score_report.leader_board.append(
+        ScoreReport.LeaderBoardEntry(
+            "总分",
+            score_report.final_score(),
+            0,
+            True,
+            "",
+        )
+    )
+
+    return score_report
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('task4_test_ctest',
-                        type=str,
-                        help='task4 调用测试的可执行文件路径')
-    parser.add_argument('task4_test_dir', type=str, help='task4 的测试总目录')
-    parser.add_argument('task4_test_weight',
-                        type=str,
-                        help='保存 task4 的测试用例及权重的文件')
-    parser.add_argument('task4_test_clang',
-                        type=str,
-                        help='用于编译 task4 的 clang 路径')
-    parser.add_argument('task4_test_rtlib_path',
-                        type=str,
-                        help='保存 task4 的运行时库的路径')
-    parser.add_argument('task4_test_timeout', type=int, help='task4 的测试时间限制')
-    # parser.add_argument('task4_test_log_level',
-    #                     type=int,
-    #                     help='task4 的日志输出等级')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser("实验四评测脚本")
+    parser.add_argument("srcdir", type=str, help="测例目录")
+    parser.add_argument("bindir", type=str, help="测评输出目录")
+    parser.add_argument("cases_file", type=str, help="测例表路径")
+    parser.add_argument("ctest_exe", type=str, help="CTest 程序路径")
+    parser.add_argument("comp_path", type=str, help="编译器路径")
+    parser.add_argument("rtlib_path", type=str, help="运行时库路径")
+    parser.add_argument("--single", type=str, help="运行单个测例")
     args = parser.parse_args()
-    args.task4_test_log_level = 1
-    # 判断输入参数是否合法
-    if args.task4_test_log_level < 1 or args.task4_test_log_level > 3:
-        raise ValueError('task4_test_log_level must be 1, 2 or 3.')
+    print_parsed_args(parser, args)
 
-    # 将路径转换为绝对路径
-    args.task4_test_dir = osp.abspath(args.task4_test_dir)
-    args.task4_test_weight = osp.abspath(args.task4_test_weight)
-    condition_dict = {
-        'console': True,
-        'all_cases_file': False,
-        'one_case_file': False
-    }
+    print("加载测例表...", end="", flush=True)
+    cases_helper = CasesHelper.load_file(
+        args.srcdir,
+        args.bindir,
+        args.cases_file,
+    )
+    print("完成")
 
-    # 进行 CTEST
-    os.system(f'{args.task4_test_ctest} --test-dir {args.task4_test_dir}')
-    # 生成总成绩单的日志保存到 task4_test_dir 下的 score.txt 文件中
-    all_cases_file_filter = CustomFilter(name='all_cases_file_filter',
-                                         condition_dict=condition_dict,
-                                         condition='all_cases_file')
-    scoresfile_for_all_cases = osp.abspath(
-        osp.join(args.task4_test_dir, 'score.txt'))
-    file_handler = logging.FileHandler(scoresfile_for_all_cases, mode='w')
-    file_handler.addFilter(all_cases_file_filter)
-    file_handler.setLevel(logging.INFO)
+    COMP_PATH = args.comp_path
+    RTLIB_PATH = args.rtlib_path
 
-    # 生成控制台的日志
-    console_filter = CustomFilter(name='console_filter',
-                                  condition_dict=condition_dict,
-                                  condition='console')
-    console_handler = logging.StreamHandler(stream=sys.stdout)
-    console_handler.addFilter(console_filter)
-    console_handler.setLevel(logging.INFO)
+    if case_name := args.single:
+        for case in cases_helper.cases:
+            if case.name == case_name:
+                break
+        else:
+            print("没有找到指定的测例：", case_name)
+            sys.exit(1)
 
-    # 设置日志格式
-    formatter = logging.Formatter('%(message)s')
-    file_handler.setFormatter(formatter)
-    console_handler.setFormatter(formatter)
+        # 通过 CTest 运行同学们的代码
+        case_outerr = cases_helper.open_case_outerr(case, "ctest")
+        out_path, out, err_path, err = case_outerr
+        print("CTest 运行日志：", out_path, err_path)
+        print("运行 CTest 以得到结果...", end="", flush=True)
+        with out, err:
+            subps.run(
+                [
+                    args.ctest_exe,
+                    "--test-dir",
+                    args.bindir,
+                    "-R",
+                    "^task4/" + case_name,
+                    # 注意这里一定不能写成 test4/，否则会无限递归下去
+                ],
+                stdout=out,
+                stderr=err,
+            )
+        print("完成")
 
-    # 设置日志产生器
-    task4_logger = logging.getLogger('task4')
-    task4_logger.setLevel(logging.INFO)
-    task4_logger.addHandler(file_handler)
-    task4_logger.addHandler(console_handler)
+        score_one(cases_helper, case)
+        print("评测结果已保存：", cases_helper.of_case_bindir("score.txt", case))
 
-    # 打印输入参数
-    task4_logger.info('Task4 测试总目录路径: %s' % args.task4_test_dir)
-    task4_logger.info('Task4 测试用例及权重文件路径: %s' % args.task4_test_weight)
-
-    task4_logger.info('-' * 40)
-    manager = ReportsManager(task_name='task4')
-    # 对 task4 的结果进行评分
-    grade_done = score_all_case(task4_logger, condition_dict, manager,
-                                args.task4_test_log_level, args.task4_test_dir,
-                                args.task4_test_weight, args.task4_test_clang,
-                                args.task4_test_rtlib_path,
-                                args.task4_test_timeout)
-    if grade_done:
-        task4_logger.info('Task4 评分完成.')
     else:
-        task4_logger.error('Task4 评分出错.')
-    task4_logger.info('-' * 40)
-    results_txt = manager.to_txt()
-    condition_dict['all_cases_file'] = True
-    task4_logger.info(results_txt)
-    condition_dict['all_cases_file'] = False
-    task4_logger.info('评分结果已保存到: %s' % scoresfile_for_all_cases)
-    task4_logger.info('各测例的评分结果已保存到各自的 score.txt 文件中.')
+        # 通过 CTest 运行同学们的代码
+        out_path, out, err_path, err = cases_helper.open_outerr("ctest")
+        print("CTest 运行日志：", out_path, err_path)
+        print("运行 CTest 以得到结果...", end="", flush=True)
+        with out, err:
+            subps.run(
+                [args.ctest_exe, "--test-dir", args.bindir, "-R", "^task4/.*"],
+                stdout=out,
+                stderr=err,
+            )
+        print("完成")
 
-    results_json = manager.to_json()
-    jsonfile_for_all_cases = osp.abspath(
-        osp.join(args.task4_test_dir, 'score.json'))
-    with open(jsonfile_for_all_cases, 'w') as f:
-        f.write(results_json)
-    task4_logger.info('JSON格式的评分结果已保存到: %s' % jsonfile_for_all_cases)
+        # 评分，生成成绩单
+        print()
+        score_report = score_all(cases_helper)
+        print()
+
+        print("=" * 80)
+        score_report.print()
+        print("=" * 80)
+
+        # 保存成绩单
+        txt_path, f = cases_helper.open_root_report()
+        with f:
+            score_report.dump_human_text(f)
+        print("成绩单已保存：", cases_helper.of_bindir("score.txt"))
+
+        json_path, f = cases_helper.open_autograder_json()
+        with f:
+            score_report.dump_autograder(f)
+        print("JSON 格式：", cases_helper.of_bindir("score.json"))

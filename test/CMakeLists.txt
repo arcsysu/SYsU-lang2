@@ -1,8 +1,3 @@
-find_package(
-  Python3
-  COMPONENTS Interpreter
-  REQUIRED)
-
 file(
   GLOB_RECURSE
   _rtlib_src

@@ -4,7 +4,7 @@ endif()
 
 antlr4_generate(
   task1-antlr # 唯一标识名
-  ${CMAKE_CURRENT_SOURCE_DIR}/SYsU_lang.g4 # 输入文件
+  ${CMAKE_CURRENT_SOURCE_DIR}/SYsULexer.g4 # 输入文件
   LEXER # 生成类型：LEXER/PARSER/BOTH
   FALSE # 是否生成 listener
   FALSE # 是否生成 visitor

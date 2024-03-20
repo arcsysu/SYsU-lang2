@@ -42,6 +42,7 @@ add_custom_target(
   COMMAND
     ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/score.py ${TEST_CASES_DIR}
     ${CMAKE_CURRENT_BINARY_DIR} ${TASK1_CASES_TXT} ${CTEST_COMMAND}
+    ${TASK1_LOG_LEVEL}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   USES_TERMINAL
   SOURCES score.py)
@@ -59,7 +60,7 @@ foreach(_case ${_task1_cases})
     COMMAND
       ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/score.py
       ${TEST_CASES_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${TASK1_CASES_TXT}
-      ${CTEST_COMMAND} --single ${_case})
+      ${CTEST_COMMAND} ${TASK1_LOG_LEVEL} --single ${_case})
 endforeach()
 
 message(AUTHOR_WARNING "请在构建 task0-answer 后再使用 task1 的测试项目。")
