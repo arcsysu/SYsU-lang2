@@ -13,7 +13,7 @@
 ```bash
 cmake --build . -t task0
 cmake --build . -t task0-score
-cmmake --build . -t task0-pack
+cmake --build . -t task0-pack
 ```
 
 然而，我们强烈建议你使用 VSCode 侧边栏来完成这些操作，因为这样可以在之后带来更多方便。
