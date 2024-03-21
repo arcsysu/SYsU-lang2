@@ -214,7 +214,6 @@ ConstExp      ::= Exp;
 
 如果需要SysY语言更为详细的文法解释和定义，可以参考该链接：https://gitlab.eduxiji.net/nscscc/compiler2021/-/blob/master/SysY%E8%AF%AD%E8%A8%80%E5%AE%9A%E4%B9%89.pdf
 
-### 文法参考2
 本实验模板代码所取用的文法如下，不过下述文法是非常完整的类C语言的文法，同学们可以取用自己需要的即可。
 <details>
   <summary>
