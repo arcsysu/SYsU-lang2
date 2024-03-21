@@ -4,575 +4,188 @@
 
 ```bash
 -- common
-   |-- Asg2Json.cpp
-   |-- Asg2Json.hpp
-   |-- Typing.cpp
-   |-- Typing.hpp
-   `-- asg.hpp
+  |-- Asg2Json.cpp
+  |-- Asg2Json.hpp
+  |-- Obj.cpp
+  |-- Obj.hpp
+  |-- Typing.cpp
+  |-- Typing.hpp
+  |-- asg.cpp
+  `-- asg.hpp
 ```
 
-## Asg 代码介绍
-
-`asg.hpp` 文件定义了一个用于表示抽象语法图（`Abstract Syntax Graph`，简称 `ASG`）的数据结构，这是在编译器设计中用于表示源代码结构的一种高级表示形式。这个文件中定义的结构和类用于表示编程语言的不同构件，如类型、表达式、语句等。
-
-### 基础类Obj
-
-首先是基础类 `Obj` 的定义，
-
-- **Obj** : 表示 ASG 中所有节点的基类，提供了类型转换的方法 (`dcst`, `scst`, `rcst`) 和一个 `std::any` 类型的成员 `any`，用于存储任意类型的附加数据。后面的类型系统类，表达式类，语句类，声明类等都由 `Obj` 类派生出来。
-- **Mgr** : `Obj` 的嵌套类，用于管理 `Obj` 对象的生命周期，包括创建和销毁对象。这是一个包含 `std::unique_ptr<Obj>` 的向量，提供了 `make` 模板方法用于创建新对象。
-- **Walked** : 用于防止在遍历 ASG 时发生循环引用，通过在构造时标记节点，在析构时清除标记。
-- **Ptr** : 一个模板类，用于表示对 ASG 节点的类型安全的指针，支持有限的泛型。
-
-```cpp
-struct Obj
-{
-  std::any any; /// 留给遍历器存放任意数据
-
-  virtual ~Obj() = default;
-
-  template<typename T>
-  T* dcst()
-  {
-    return dynamic_cast<T*>(this);
-  }
-
-  template<typename T>
-  T* scst()
-  {
-    return static_cast<T*>(this);
-  }
-
-  template<typename T>
-  T& rcst()
-  {
-    return *reinterpret_cast<T*>(this);
-  }
-
-  struct Mgr : public std::vector<std::unique_ptr<Obj>>
-  {
-    template<typename T, typename... Args>
-    T& make(Args... args)
-    {
-      auto ptr = std::make_unique<T>(args...);
-      auto& obj = *ptr;
-      emplace_back(std::move(ptr));
-      return obj;
-    }
-  };
-
-  /// 检查循环引用，防止无限递归。
-  struct Walked
-  {
-    Obj* mObj;
-
-    Walked(Obj* obj)
-      : mObj(obj)
-    {
-      ASSERT(!mObj->any.has_value());
-      mObj->any = nullptr;
-    }
-
-    ~Walked() { mObj->any.reset(); }
-  };
-
-  /// 有限泛型的指针模板类
-  template<typename... Ts>
-  struct Ptr
-  {
-    static_assert(all_true<std::is_convertible_v<Ts*, Obj*>...>::value);
-
-    Obj* mObj{ nullptr };
-
-    Ptr() {}
-
-    Ptr(std::nullptr_t) {}
-
-    template<typename T,
-             typename = std::enable_if_t<is_one_of<T, Ts...>::value>>
-    Ptr(T* p)
-      : mObj(p)
-    {
-    }
-
-    operator bool() { return mObj != nullptr; }
-
-    template<typename T,
-             typename = std::enable_if_t<is_one_of<T, Ts...>::value>>
-    T* dcst()
-    {
-      return dynamic_cast<T*>(mObj);
-    }
-
-    template<typename T,
-             typename = std::enable_if_t<is_one_of<T, Ts...>::value>>
-    T& rcst()
-    {
-      return *reinterpret_cast<T>(mObj);
-    }
-  };
-};
-```
-
-### 类型系统
-
-然后是**类型系统类**的定义,下面的代码首先定义了一套类型系统，用于在编译器中表示和处理变量、表达式和函数的类型信息。基本类型信息(`Type`)提供了对简单数据类型的描述，而类型表达式(`TypeExpr` 及其派生类)则用于表示更复杂的类型结构，如指针、数组和函数类型。这套类型系统是编译器实现类型检查、类型推断和代码生成等任务的基础。
-
-```cpp
-struct TypeExpr;
-struct Expr;
-struct Decl;
-
-struct Type
-{
-  /// 说明（Specifier）
-  enum class Spec : std::uint8_t
-  {
-    kINVALID,
-    kVoid,
-    kChar,
-    kInt,
-    kLong,
-    kLongLong,
-  };
-
-  /// 限定（Qualifier）
-  enum class Qual : std::uint8_t
-  {
-    kNone,
-    kConst,
-    // kVolatile,
-  };
-
-  Spec spec{ Spec::kINVALID };
-  Qual qual{ Qual::kNone };
-
-  TypeExpr* texp{ nullptr };
-};
-
-struct TypeExpr : public Obj
-{
-  TypeExpr* sub{ nullptr };
-};
-
-struct PointerType : public TypeExpr
-{
-  Type::Qual qual{ Type::Qual::kNone };
-};
-
-struct ArrayType : public TypeExpr
-{
-  std::uint32_t len{ 0 }; /// 数组长度，kUnLen 表示未知
-  static constexpr std::uint32_t kUnLen = UINT32_MAX;
-};
-
-struct FunctionType : public TypeExpr
-```
-
- **Type 结构体 :**
-
-* Spec : 枚举类型，定义了基本的数据类型（如 `void`, `char`, `int`, `long`, `long long`），用于表示变量或表达式的数据类型。
-* Qual : 枚举类型，定义了类型限定符（如 `const`），用于增加类型的限定信息。
-* texp : 指向 `TypeExpr` 的指针，用于表示更复杂的类型结构，比如指针、数组或函数类型。
-
- **TypeExpr 结构体及其派生 :**
-
-* 它是一个从 `Obj` 派生的基类，表示所有类型表达式的基础。`TypeExpr` 通过继承 `Obj`，成为抽象语法图（ASG）的一部分，允许在 ASG 中以统一的方式处理类型信息。
-* sub : 表示类型表达式的子类型，用于构建嵌套的类型表达式，如指针的指向类型或数组元素的类型。
-
- **派生自 TypeExpr 的几种类型 :**
-
-* PointerType : 表示指针类型，增加了 `qual` 成员来表示指针所指向的类型的限定符（如 `const`）。
-* ArrayType : 表示数组类型，增加了 `len` 成员来表示数组的长度，其中 `kUnLen` 表示长度未知的情况。
-* FunctionType : 表示函数类型，通过 `params` 成员来表示函数参数的类型列表。
-
-### 表达式
-
-以下代码定义了抽象语法树（`AST`）中表达式节点的结构和类型，是编译器前端在语法分析和语义分析阶段使用的。每种表达式类型都继承自基类 `Expr `，它本身继承自 `Obj`，意味着所有表达式节点都是抽象语法图（`ASG`）的一部分。
-
-```cpp
-struct Decl;
-
-struct Expr : public Obj
-{
-  enum class Cate : std::uint8_t
-  {
-    kINVALID,
-    kRValue,
-    kLValue,
-  };
-
-  Type type;
-  Cate cate{ Cate::kINVALID };
-};
-
-struct IntegerLiteral : public Expr
-{
-  std::uint64_t val{ 0 };
-};
-
-struct StringLiteral : public Expr
-{
-  std::string val;
-};
-
-struct DeclRefExpr : public Expr
-{
-  Decl* decl{ nullptr };
-};
-
-struct ParenExpr : public Expr
-{
-  Expr* sub{ nullptr };
-};
-
-struct UnaryExpr : public Expr
-{
-  enum Op
-  {
-    kINVALID,
-    kPos,
-    kNeg,
-    kNot
-  };
-
-  Op op{ kINVALID };
-  Expr* sub{ nullptr };
-};
-
-struct BinaryExpr : public Expr
-{
-  enum Op
-  {
-    kINVALID,
-    kMul,
-    kDiv,
-    kMod,
-    kAdd,
-    kSub,
-    kGt,
-    kLt,
-    kGe,
-    kLe,
-    kEq,
-    kNe,
-    kAnd,
-    kOr,
-    kAssign,
-    kComma,
-    kIndex,
-  };
-
-  Op op{ kINVALID };
-  Expr *lft{ nullptr }, *rht{ nullptr };
-};
-
-struct CallExpr : public Expr
-{
-  Expr* head{ nullptr };
-  std::vector<Expr*> args;
-};
-
-struct InitListExpr : public Expr
-{
-  std::vector<Expr*> list;
-};
-
-struct ImplicitInitExpr : public Expr
-{};
-
-struct ImplicitCastExpr : public Expr
-```
-
-其中，
-
- **Expr 结构体** : 作为所有表达式类型的基类，包含了共同的属性：
-
-* `Cate`: 表示表达式的类别，即是左值（可以出现在赋值运算符的左侧）还是右值（通常表示临时值或字面量）。
-* `Type`: 表示表达式的类型信息，包括基本类型（如 `int`、`float`）和更复杂的类型（如指针、数组）。
-
- **具体的表达式类型** :
-
-* **IntegerLiteral** : 表示整数字面量的表达式。
-* **StringLiteral** : 表示字符串字面量的表达式。
-* **DeclRefExpr** : 表示对声明的引用，如变量名或函数名。
-* **ParenExpr** : 表示括号表达式，用于改变运算顺序或仅仅为了清晰。
-* **UnaryExpr** : 表示一元运算表达式，如取反、逻辑非等。
-* **BinaryExpr** : 表示二元运算表达式，如加减乘除、逻辑与或等。
-* **CallExpr** : 表示函数调用表达式。
-* **InitListExpr** : 表示初始化列表表达式，用于数组或结构体的初始化。
-* **ImplicitInitExpr** : 表示隐式初始化表达式，可能用于默认初始化。
-* **ImplicitCastExpr** : 表示隐式类型转换表达式，如自动类型提升或类型转换。
-
-每种表达式类型通过特有的成员变量来表示其独特的语义和结构。例如，`UnaryExpr` 包含一个操作符和一个子表达式，`BinaryExpr` 包含一个操作符和两个子表达式（左右），而 `CallExpr` 包含一个表示被调用函数的表达式和一个参数表达式列表。
-
-### 语句
-
-以下代码定义了在抽象语法树（`AST`）或抽象语法图（`ASG`）中表示程序语句的结构和类型，是编译器前端在构建 `AST`或 `ASG`时使用的。每种语句类型都继承自基类 `Stmt `，它本身继承自 `Obj`，意味着所有语句节点都是 `ASG`的一部分。
-
-```cpp
-struct FunctionDecl;
-
-struct Stmt : public Obj
-{};
-
-struct NullStmt : public Stmt
-{};
-
-struct DeclStmt : public Stmt
-{
-  std::vector<Decl*> decls;
-};
-
-struct ExprStmt : public Stmt
-{
-  Expr* expr{ nullptr };
-};
-
-struct CompoundStmt : public Stmt
-{
-  std::vector<Stmt*> subs;
-};
-
-struct IfStmt : public Stmt
-{
-  Expr* cond{ nullptr };
-  Stmt *then{ nullptr }, *else_{ nullptr };
-};
-
-struct WhileStmt : public Stmt
-{
-  Expr* cond{ nullptr };
-  Stmt* body{ nullptr };
-};
-
-struct DoStmt : public Stmt
-{
-  Stmt* body{ nullptr };
-  Expr* cond{ nullptr };
-};
-
-struct BreakStmt : public Stmt
-{
-  Stmt* loop{ nullptr };
-};
-
-struct ContinueStmt : public Stmt
-{
-  Stmt* loop{ nullptr };
-};
-
-struct ReturnStmt : public Stmt
-{
-  FunctionDecl* func{ nullptr };
-  Expr* expr{ nullptr };
-};
-```
-
-其中，
-
-**Stmt 结构体** : 作为所有语句类型的基类，没有包含具体的成员变量，主要用于多态地处理不同类型的语句。
-
-**具体的语句类型** :
-
-* **NullStmt** : 空语句，通常表示一个占位或无操作的语句（如单独的分号 `;`）。
-* **DeclStmt** : 声明语句，包含一组声明，如变量或函数的声明。
-* **ExprStmt** : 表达式语句，包含一个表达式，通常是一个操作的执行，如函数调用或赋值操作。
-* **CompoundStmt** : 复合语句（或块语句），包含一系列其他语句，通常用花括号 `{}` 包裹。
-* **IfStmt** : 条件语句，包含一个条件表达式和两个分支（then和else），根据条件表达式的值执行其中一个分支。
-* **WhileStmt** : while循环语句，包含一个条件表达式和一个循环体，只要条件为真，就循环执行循环体。
-* **DoStmt** : do-while循环语句，类似于while循环，但保证循环体至少执行一次，之后再检查条件。
-* **BreakStmt** : 跳出循环语句，用于立即退出最近的包围循环。
-* **ContinueStmt** : 继续下一次循环语句，用于立即跳至最近的包围循环的下一个迭代。
-* **ReturnStmt** : 返回语句，用于从函数返回值或结束函数的执行。包含一个可选的返回值表达式。
-
-这些语句类型覆盖了编程语言中的基本语句结构，允许编译器解析源代码并构建表示程序逻辑的AST或ASG。通过这些结构，编译器能够进行语法检查、语义分析，并为后续的优化和代码生成阶段准备数据结构。
-
-### 声明
-
-以下代码定义了抽象语法树（`AST`）中用于表示程序中的声明（`declarations`）的结构和类型，是编译器前端在解析和处理程序源代码时使用的。
 
-```cpp
-struct Decl : public Obj
-{
-  Type type;
-  std::string name;
-};
+## Obj相关代码介绍
 
-struct VarDecl : public Decl
-{
-  Expr* init{ nullptr };
-};
+`Obj` 类及相关的结构是一个为内存管理和类型系统设计的框架。这个框架的设计目的是为了在抽象语法图（ASG）构建和操作过程中，提供一个灵活、高效的内存管理和类型标注体系。
 
-struct FunctionDecl : public Decl
-{
-  std::vector<Decl*> params;
-  CompoundStmt* body{ nullptr };
-};
+### Obj类
 
-using TranslationUnit = std::vector<Decl*>;
-```
+`Obj` 类是所有对象的基类，它定义了一套通用的接口和一些基本的属性。这个设计允许在ASG中不同种类的节点之间进行通用操作，同时提供了标准的内存管理和类型识别机制。
 
-其中，
+主要特性和成员
 
- **Decl 结构体** : 作为所有声明类型的基类，包含了每个声明共有的属性：
+- `any`: 这是一个 void* 指针，可以用来存储任意类型的数据。这提供了一种灵活的方式，让不同的ASG节点可以附加额外的信息或状态。
+- `__next__`: 用于内部的内存管理，特别是垃圾回收机制。这是一个指向下一个对象的指针，形成一个链表结构，方便管理所有创建的对象。
 
-* `Type`: 声明的类型，用于描述变量的数据类型或函数返回类型等。
-* `name`: 声明的名称，例如变量名或函数名。
+### Obj::Mgr类
 
- **具体的声明类型** :
+然后是 `Obj::Mgr` 类, `Obj::Mgr` 类是一个对象管理器，负责管理所有通过它创建的 `Obj` 派生对象的生命周期。它使用标记-清除算法来实现垃圾回收，防止内存泄漏。
 
-* **VarDecl** : 变量声明，继承自 `Decl`。除了基类的 `type` 和 `name` 属性外，还包含一个可选的 `init` 表达式用于初始化变量。
-* **FunctionDecl** : 函数声明，也继承自 `Decl`。除了 `type` 和 `name`，还包含参数列表 `params`（每个参数也是一个 `Decl` 类型的对象）和函数体 `body`（一个复合语句，由多个其他语句组成）。
+垃圾回收机制
 
-**TranslationUnit** : 是一个 `Decl` 类型的对象的向量（`vector`），用于表示一个翻译单元（通常是一个源文件）。翻译单元包含了该源文件中的所有顶层声明，如全局变量声明和函数定义。
+- `gc()`: 执行垃圾回收。这个方法首先标记所有从根对象可达的对象，然后清扫那些未被标记的对象。
+- `__mark__`: 这是一个虚函数，用于标记过程中递归标记所有可达的对象。
 
-总体来说，这段代码为编译器提供了一种方式来表示和处理程序中的各种声明。通过这些声明的结构，编译器能够解析源代码中的变量声明和函数定义，构建相应的AST或ASG，以便进行后续的语义分析、优化和代码生成等任务。
+### Obj::Walked类
+`Obj::Walked` 是一个辅助类，用于检测和防止在对象图遍历过程中发生的循环引用问题。通过在遍历开始时构造`Obj::Walked` 实例，并在遍历结束时自动析构，它可以暂时修改对象的状态来标记已访问的对象，从而避免无限循环。例如在对`ASG`进行深度优先搜索（`DFS`）等操作时，`Obj::Walked` 可以确保每个节点只被访问一次，即使图中存在循环引用。
 
-## Typing总体介绍
+总的来说，在ASG构建和操作过程中，所有的节点都继承自 `Obj` 类，确保了类型的统一和内存的可管理性。`Obj::Mgr `实例作为对象的容器和管理者，控制着所有对象的生命周期，并提供垃圾回收机制。在遍历或分析`ASG`时，`Obj::Walked` 用于保护遍历算法不会因循环引用而陷入死循环。
 
- `Typing` 类是在抽象语法图（Abstract Syntax Graph, ASG）中进行类型推断和补全的主要工具。类型推断是编译器设计中的一个关键步骤，用于确定程序中各个表达式的数据类型，尤其是在那些类型信息不完全显式的情况下。在这一小节中我们将详细介绍上一小节中提到的表达式，语句以及声明的推断。
 
-首先在 `Typing.cpp` 的文件开头存在以下一段成员函数的定义，
+## Asg 相关代码介绍
 
-```cpp
-void
-Typing::operator()(TranslationUnit& tu)
-{
-  for (auto&& i : tu)
-    self(i);
-}
-```
+`asg` 命名空间定义了一系列类和函数，这些构成了将抽象语法树（`AST`）转换为抽象语法图（`ASG`）以及将`ASG`转为`json`的基础。`ASG` 是源代码抽象语法树（`AST`）的进一步抽象，旨在提供更丰富的语义表示，以便进行类型检查、优化等编译阶段的处理。以下是这部分代码的详细介绍：
 
-翻译单元 `tu` (`Typing::operator`函数的输入变量)代表了整个  `example.c` 文件经过词法分析和语法分析后生成的一个抽象语法树（`AST`）的根节点或是这个根节点管理的所有节点的集合。函数体中的 `for (auto&& i : tu)` 循环遍历传入的翻译单元中的每一个声明。在循环体中，`self(i);` 调用当前 `Typing` 实例的 `operator()` 重载函数，对翻译单元中的每个声明进行处理。
+### 核心类和结构体
 
-那么在 ` FOR` 循环中究竟进行了什么样的处理呢？在这里举一个简单的例子向同学们介绍类型推断(`Typing `)具体是在做什么，假设我们有一个简单的C语言源文件 `example.c`，内容如下：
+1. `TranslationUnit`:
+- 代表整个程序或一个编译单元，是`ASG`的根节点。
+- 包含多个 `Decl` 类型的成员，代表在全局范围内声明的变量和函数。
+2. `Decl`（声明基类）:
+- 表示所有声明的基类，例如变量声明和函数声明。
+- 具体的声明通过派生类表示，如 `VarDecl` 和 `FunctionDecl`。
+3. `Expr`（表达式基类）:
+- 所有表达式节点的基类，比如字面量、二元运算、函数调用等。
+- 具体的表达式通过派生类表示，如 `IntegerLiteral`、`BinaryExpr` 和 `CallExpr`。
+4. `Stmt`（语句基类）:
+- 所有语句的基类，例如表达式语句和复合语句。
+- 具体的语句通过派生类表示，如 `ExprStmt` 和 `CompoundStmt`。
+5. `Type` 类和 `TypeExpr`:
+- 用于表示节点的类型信息，包括基本类型和复合类型。
+- `TypeExpr` 用于更复杂的类型表达，如数组和函数类型。
 
-```cpp
-int main() {
-    int a = 5;
-    int b = a + 2;
-    return b;
-}
+### 类之间的关系
+- 从属关系: `TranslationUnit` 作为`ASG`的根节点，包含一系列的 `Decl` 实例，如 `VarDecl` 和 `FunctionDecl`，代表全局声明的变量和函数。这些声明中可能会包含对表达式的引用，例如函数返回类型或者变量初始化表达式，从而关联到 `Expr` 类及其派生类。
+- 包含关系: `FunctionDecl` 类会包含 `Stmt` 类的实例，特别是 `CompoundStmt`，以表示函数体。`CompoundStmt` 再包含更多的 `Stmt` 实例，形成一个语句树，这些语句可能是 `ExprStmt`，表示表达式语句，或者是其他复合语句，形成层次结构。
+- 引用关系: 表达式（`Expr` 类及其派生类）可能会引用声明（通过 `DeclRefExpr` 类），表示变量的使用或函数的调用。同时，表达式之间也会形成树状结构，如 `BinaryExpr` 的左右子表达式。
 
-```
 
-在这个例子中，
 
-在调用 `Typing::operator `函数之后，我们需要进行：
 
-**类型推断** ：对于变量 `a` 和 `b` 的声明，我们需要确认它们是 `int` 类型。尽管在源代码中已经显式声明了类型，但在AST中，我们还需要将这些类型信息明确附加到对应的节点上。
 
-**表达式类型计算** ：对于表达式 `a + 2`，我们需要确认这个表达式的结果也是 `int` 类型，并且 `a` 的值可以与字面量 `2`（默认为 `int` 类型）进行加法操作。
 
-当 `Typing` 类的实例对这个翻译单元调用 `operator()` 时，它会遍历AST中的每个节点（本例中为 `main` 函数内的声明和表达式），并使用内部定义的规则来补全或确认每个节点的类型信息。这包括将 `int` 类型信息关联到变量 `a` 和 `b` 的声明上，以及推断出 `a + 2` 表达式的结果类型为 `int`。在这个过程完成后，编译器将具备生成类型正确的目标代码所需的所有信息，例如正确的数据大小和对应的操作指令。
 
+## Typing 相关代码介绍
 
-### Operator函数重载
+`Typing` 类及其相关函数是设计用来在抽象语法图（`ASG`）中进行类型推导和检查的。通过遍历`ASG`节点并分析其语义，`Typing` 类填充或确认节点的类型信息，以便于后续的代码生成或其他分析阶段使用。以下是详细的介绍：
 
-`以下代码段是 Typing` 类中重载的 `operator()` 成员函数，它是用于对不同类型的表达式节点进行类型推断和类型修正的核心逻辑。每个重载的 `operator()` 方法处理一种特定类型的表达式节点。
+### Typing 类的主要职责
+1. **类型推导**: 对ASG中的表达式和变量进行类型推导，确定它们的具体类型。
+2. **类型检查**: 确认代码中的类型使用是否正确，例如赋值操作的左右两侧类型是否兼容。
+3. **类型转换**: 根据需要插入隐式或显式的类型转换，保证操作的类型安全。
 
-```cpp
-Expr*
-Typing::operator()(Expr* obj)...
+### Typing 类的核心成员和函数
 
-Expr*
-Typing::operator()(IntegerLiteral* obj)...
+成员变量
+- `Obj::Mgr& mMgr`: 对象管理器的引用，用于在类型推导过程中创建新的类型或表达式对象。
+- `Type::Cache mTypeCache`: 类型缓存，用于存储和复用类型实例，避免重复创建相同的类型对象。
+  
+主要方法
+- `operator()(TranslationUnit* tu)`: 对整个翻译单元进行类型推导。这是类型推导过程的入口点。
+- `operator()(Expr* obj)`: 对表达式进行类型推导。这个方法会根据表达式的种类调用更具体的处理函数。
+- `operator()(Stmt* obj)`: 对语句进行类型处理，确保语句中使用的表达式类型正确。
+- `operator()(Decl* obj)`: 对声明进行类型推导和检查，包括变量声明和函数声明。
+- `ensure_rvalue(Expr* exp)`: 确保表达式为右值，如果需要，进行左值到右值的转换。
+- `promote_integer(Expr* exp, Type::Spec to = Type::Spec::kInt)`: 进行整数提升，将小于 `int` 类型的整数类型提升为 `int` 或更大的整数类型。
+- `assignment_cast(Expr* lft, Expr* rht)`: 对赋值操作的右侧进行类型转换，确保与左侧类型兼容。
 
-Expr*
-Typing::operator()(StringLiteral* obj)...
+### 类型推导和转换的代码结构
 
-Expr*
-Typing::operator()(DeclRefExpr* obj)...
-
-Expr*
-Typing::operator()(ParenExpr* obj)...
-
-Expr*
-Typing::operator()(UnaryExpr* obj)...
-
-Expr*
-Typing::operator()(BinaryExpr* obj)...
-
-Expr*
-Typing::operator()(CallExpr* obj)...
-```
-
-其中，
-
-`Typing::operator()(Expr* obj)`  这个方法是表达式类型推断的通用入口点，它根据传入的表达式 `obj` 的实际类型，调用对应的处理方法。使用 `dynamic_cast` 尝试将 `obj` 转换为具体的表达式类型，如果转换成功，则递归调用 `self`（即 `(*this)`）对该具体类型进行处理。如果所有类型尝试都失败，则调用 `ABORT()`，表示出现了无法处理的表达式类型。
-
-`Typing::operator()(IntegerLiteral* obj)` 处理整数字面量表达式。根据字面量的值确定其类型是 `int` 还是 `long long`，并设置其类型和类别（右值）。
-
-`Typing::operator()(StringLiteral* obj)` 处理字符串字面量表达式。设置其类型为 `char` 类型的常量数组，并计算数组长度（字符串长度加一，考虑到结尾的空字符）。
-
-`Typing::operator()(DeclRefExpr* obj)` 处理声明引用表达式。将表达式的类型设置为其引用的声明的类型，并标记为左值。
-
-`Typing::operator()(ParenExpr* obj)` 处理括号表达式。递归处理其子表达式，并将括号表达式的类型和类别设置为与子表达式相同。
-
-`Typing::operator()(UnaryExpr* obj)` 处理一元表达式。首先递归处理其子表达式，进行必要的类型提升和右值转换。然后根据一元操作符的种类进行特定的类型处理。
-
-`Typing::operator()(BinaryExpr* obj)` 处理二元表达式。首先递归处理左右子表达式，进行必要的类型提升和右值转换。然后根据二元操作符的种类对表达式的类型和类别进行特定的处理。
-
-每个处理方法都遵循相似的模式：首先确认表达式的有效性（通过断言），然后根据表达式的特定逻辑对类型和值进行推断和调整。这些方法的目的是确保表达式在语法树中具有正确的类型信息，这对于后续的代码生成或其他分析任务至关重要。
-
-## Asg2Json 代码介绍
-这一部分包含 `Asg2Json.cpp` 和 `Asg2Json.hpp` 两个代码文件，这两个文件负责实现将`ASG`（抽象语法图）转换为`JSON`格式的功能。这个过程允许将编译器内部的复杂结构以一种标准和易于理解的格式输出，便于后续的处理或分析。
-首先是`Asg2Json.hpp`，这是`Asg2Json`类的声明文件。它声明了一个类，该类包含一系列方法，用于将不同类型的`ASG`节点（如表达式、声明、语句等）转换为`JSON`对象。这里的`JSON`对象使用的是`LLVM`库中的`llvm::json::Object`，这是`LLVM`提供的`JSON`处理工具的一部分。
+类型推导
+在处理表达式时，`Typing` 类会根据表达式的类型进行分派，调用对应的处理函数。例如，对于整数字面量 (`IntegerLiteral`)，它会确定字面量的类型（是否足够用 `int` 表示，或者需要更大的类型如 `long long`）。
 ```c++
-#pragma once
+Expr* Typing::operator()(IntegerLiteral* obj) {
+  // 确定字面量类型
+  Type::Spec spec;
+  if (obj->val <= INT32_MAX) {
+    spec = Type::Spec::kInt;
+  } else {
+    spec = Type::Spec::kLongLong;
+  }
 
-#include "asg.hpp"
-#include <llvm/Support/JSON.h>
-
-namespace asg {
-
-namespace json = llvm::json;
-
-class Asg2Json
-{
-public:
-  json::Object operator()(TranslationUnit& tu);
-
-private:
-  // 类型转换方法
-  std::string operator()(TypeExpr* texp);
-  std::string operator()(const Type& type);
-
-  // 表达式转换方法
-  json::Object operator()(Expr* obj);
-  json::Object operator()(IntegerLiteral* obj);
-  // 更多表达式类型...
-
-  // 语句转换方法
-  json::Object operator()(Stmt* obj);
-  // 更多语句类型...
-
-  // 声明转换方法
-  json::Object operator()(Decl* obj);
-  // 更多声明类型...
-};
+  obj->type = mTypeCache(spec, Type::Qual{.const_ = true}, nullptr);
+  obj->cate = Expr::Cate::kRValue;
+  return obj;
 }
+
 ```
-然后是`Asg2Json.cpp`，这个文件实现了`Asg2Json.hpp`中声明的`Asg2Json`类的方法。每个方法负责将特定类型的`ASG`节点转换为相应的`JSON`表示。下面是一些关键方法的详细解释：
+
+类型检查与转换
+
+对于赋值操作，Typing 会检查左右两侧的类型是否兼容，并在需要时插入隐式类型转换。
 ```c++
-operator()(TranslationUnit& tu)
-// 这个方法接受一个TranslationUnit（翻译单元，也就是整个源文件的顶层结构）作为输入，
-// 然后遍历其中的所有声明，将它们转换为JSON格式，并返回一个代表整个翻译单元的JSON对象。
+Expr* Typing::assignment_cast(Expr* lft, Expr* rht) {
+  // 检查类型兼容性，并进行必要的类型转换
+  if (lft->type->spec != rht->type->spec) {
+    auto cst = make<ImplicitCastExpr>();
+    cst->kind = cst->kIntegralCast;
+    cst->type = lft->type;
+    cst->sub = rht;
+    rht = cst;
+  }
+  return rht;
+}
 
-operator()(TypeExpr* texp) 和 operator()(const Type& type)
-//这两个方法负责将ASG中的类型表达式和类型信息转换为字符串形式的JSON表示。
-//这对于输出变量和表达式的类型信息非常有用。
-
-operator()(Expr* obj)
-//这个方法会根据表达式的具体类型（如IntegerLiteral、StringLiteral、BinaryExpr等）
-//调用相应的转换方法，生成代表该表达式的JSON对象。
-
-operator()(Stmt* obj)
-//类似于表达式的处理方法，这个方法会处理不同类型的语句（如IfStmt、WhileStmt等），
-//并将它们转换为JSON对象。
-
-operator()(Decl* obj)
-//这个方法负责处理所有类型的声明（如变量声明、函数声明），并将它们转换为JSON对象。
 ```
-在实现这些方法时，会利用`llvm::json`命名空间下的功能，如`json::Object`和`json::Array`，来构建结构化的`JSON`数据。每个方法都会根据`ASG`节点的特性和结构，填充相应的`JSON`字段，如`kind`字段标识节点类型，以及其他表示节点具体信息的字段（例如表达式的值、变量的名称等）。
+这种方法使得 `Typing` 类可以灵活地处理各种类型相关的语义规则，包括基本的类型推导、类型兼容性检查和必要的类型转换。通过将这些功能集中在 `Typing` 类中，代码的其余部分可以在不直接处理复杂类型规则的情况下，进行语义分析和代码生成。
+
+
+## Asg2Json 相关代码介绍
+
+`Asg2Json.cpp` 和 `Asg2Json.hpp` 定义了一个 `Asg2Json` 类，其目的是将抽象语法图（`ASG`）转换为`JSON`格式的表示。这样的转换使得ASG的结构可以以文本形式展示，便于调试、可视化或进一步的处理。
+
+### Asg2Json 类的主要职责
+1. 转换逻辑: 提供将`ASG`中不同节点（如声明、表达式、语句等）转换为`JSON`对象的逻辑。
+2. 输出格式化: 生成的`JSON`格式化输出，使其易于阅读和理解。
+3. 递归处理: 能够递归处理`ASG`中的复杂结构，如函数内部的语句和表达式。
+
+### 核心方法与结构
+**`operator()` 重载**
+
+`Asg2Json` 类为`ASG`中的各种节点类型提供了 `operator()` 方法的重载，每个重载负责处理一种特定类型的节点，并将其转换为`JSON`对象。
+
+
+- 处理TranslationUnit:
+  - json::Object operator()(TranslationUnit* tu): 处理整个翻译单元，作为转换的入口点。
+
+- 处理表达式 (Expr):
+  - json::Object operator()(Expr* obj): 处理所有表达式的基类。它会根据具体的表达式类型（通过动态类型识别）调用相应的处理函数。
+
+- 处理语句 (Stmt):
+  - json::Object operator()(Stmt* obj): 类似于表达式的处理，这个方法根据语句的具体类型调用相应的处理函数。
+
+- 处理声明 (Decl):
+  - json::Object operator()(Decl* obj): 处理所有声明的基类。根据声明的类型（如变量声明或函数声明），将其转换为JSON。
+
+**类型和表达式的转换**
+
+- 处理基本类型和复合类型:
+  - std::string operator()(const Type* type): 将类型信息转换为字符串表示，用于在JSON中表示变量或表达式的类型。
+  - std::string operator()(TypeExpr* texp): 处理复合类型表达式，如数组或函数类型。
+具体表达式和语句的转换
+
+每种具体的表达式和语句类型（如 IntegerLiteral, BinaryExpr, CompoundStmt 等）都有对应的处理方法，这些方法生成代表该节点的JSON对象，并递归地处理节点的子节点（如果有）。
+
+
+
+
+
+
+
+
+
+
+
+
+
