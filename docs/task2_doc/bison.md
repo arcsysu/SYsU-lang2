@@ -738,9 +738,12 @@ declaration_list
    |-- Typing.cpp
    |-- Typing.hpp
    |-- asg.hpp
+   |-- asg.cpp
+   |-- Obj.hpp
+   |-- Obj.cpp
 ```
 
-其中 `common`是共有文件，包含了：ASG结构定义文件 `asg.hpp`，类型检查需要用到的文件:`Typing.hpp`和 `Typing.cpp`，ASG转换为Json的文件：`Asg2Json.hpp`和 `Asg2Json.cpp`。
+其中 `common`是共有文件，包含了：ASG结构定义文件 `asg.hpp`和 `asg.cpp`（基类函数定义 `obj.hpp`和 `obj.cpp`），类型检查需要用到的文件:`Typing.hpp`和 `Typing.cpp`，ASG转换为Json的文件：`Asg2Json.hpp`和 `Asg2Json.cpp`。
 
 其具体解析见公共代码介绍。
 
@@ -892,9 +895,11 @@ void printToTxtFile(std::string message) {
 - 指针问题
 取type的时候，其指针可能是空的，如果这个时候再取其texp对象，就会终止，也不会有报错信息，最好判断一下是不是空指针再去取。
 比如，如下图所示。
+
 ![alt text](../images/bison/point.png)
 
 - 更改ASG的`Type`类型
 更改ASG的`Type`类型，只能改变指针指向，不能直接去赋值。
 比如，如下图所示。新建一个`ty`的`Type`对象，更改`ty`，然后改变`$2`的`type`指针的指向为更改后的`ty`。如果直接进行`$2->type->spec=...`是不运行的，因为ASG结构体的`Type`为`const Type *`类型。
+
 ![alt text](../images/bison/type.png)
