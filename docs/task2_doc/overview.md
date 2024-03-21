@@ -2,13 +2,15 @@
 
 在本次实验中，我们首先需要完成一个语法分析器。实验一中我们实现了一个词法分析器，源代码文件输入词法分析器后将会生成 token 流，token 流输入到语法分析器之后会生成语法分析树 AST。AST 主要反映了程序的结构，但不足以全面表示程序的语义信息。语法分析图 ASG 在 AST 的基础上增加了额外的语义信息，如作用域、类型信息、变量和函数之间的关系等，这有助于进一步的编译优化、类型检查和代码生成等步骤。但是在本次实验中不管是 AST 还是 ASG，都是位于内存中的数据结构，不便于同学们进行打印输出或者代码调试以及实验评分，所以最终我们还需要实现 ASG 数据结构到 JSON 格式输出的实现。
 
+![实验二总览](../images/task2_antlr/lab2_overview.jpg)
+
 以`000_main.sysu.c`这个最简单的测试样例为例，最终由`clang parse`生成的json文件标准答可以在`/workspaces/SYsU-lang2/build/test/task2/functional-0/000_main.sysu.c/answer.json`文件处查看，
 
 ![alt text](../images/bison/task2-answer.png)
 
 下面对这个文件进行一些说明：
 
-首先是对引号内的关键词进行解释,
+首先是对引号内的关键词进行解释,但是实际上我们需要关心的只有`kind`,`name`,`value`,`type`等几个。
 
 - id: 唯一标识符，用于区分AST中的每一个节点。
 - kind: 节点类型，表示该节点代表的源代码结构的种类，如TypedefDecl（类型定义声明）、BuiltinType（内置类型）、FunctionDecl（函数声明）等。
