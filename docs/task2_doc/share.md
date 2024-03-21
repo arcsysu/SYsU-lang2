@@ -156,26 +156,26 @@ Expr* Typing::assignment_cast(Expr* lft, Expr* rht) {
 `Asg2Json` 类为`ASG`中的各种节点类型提供了 `operator()` 方法的重载，每个重载负责处理一种特定类型的节点，并将其转换为`JSON`对象。
 
 
-- 处理TranslationUnit:
-  - json::Object operator()(TranslationUnit* tu): 处理整个翻译单元，作为转换的入口点。
+- 处理`TranslationUnit`:
+  - `json::Object operator()(TranslationUnit* tu)`: 处理整个翻译单元，作为转换的入口点。
 
-- 处理表达式 (Expr):
-  - json::Object operator()(Expr* obj): 处理所有表达式的基类。它会根据具体的表达式类型（通过动态类型识别）调用相应的处理函数。
+- 处理表达式 (`Expr`):
+  - `json::Object operator()(Expr* obj)`: 处理所有表达式的基类。它会根据具体的表达式类型（通过动态类型识别）调用相应的处理函数。
 
-- 处理语句 (Stmt):
-  - json::Object operator()(Stmt* obj): 类似于表达式的处理，这个方法根据语句的具体类型调用相应的处理函数。
+- 处理语句 (`Stmt`):
+  - `json::Object operator()(Stmt* obj)`: 类似于表达式的处理，这个方法根据语句的具体类型调用相应的处理函数。
 
-- 处理声明 (Decl):
-  - json::Object operator()(Decl* obj): 处理所有声明的基类。根据声明的类型（如变量声明或函数声明），将其转换为JSON。
+- 处理声明 (`Decl`):
+  - `json::Object operator()(Decl* obj)`: 处理所有声明的基类。根据声明的类型（如变量声明或函数声明），将其转换为JSON。
 
 **类型和表达式的转换**
 
 - 处理基本类型和复合类型:
-  - std::string operator()(const Type* type): 将类型信息转换为字符串表示，用于在JSON中表示变量或表达式的类型。
-  - std::string operator()(TypeExpr* texp): 处理复合类型表达式，如数组或函数类型。
+  - `std::string operator()(const Type* type)`: 将类型信息转换为字符串表示，用于在JSON中表示变量或表达式的类型。
+  - `std::string operator()(TypeExpr* texp)`: 处理复合类型表达式，如数组或函数类型。
 具体表达式和语句的转换
 
-每种具体的表达式和语句类型（如 IntegerLiteral, BinaryExpr, CompoundStmt 等）都有对应的处理方法，这些方法生成代表该节点的JSON对象，并递归地处理节点的子节点（如果有）。
+每种具体的表达式和语句类型（如 `IntegerLiteral`, `BinaryExpr`, `CompoundStmt` 等）都有对应的处理方法，这些方法生成代表该节点的`JSON`对象，并递归地处理节点的子节点（如果有）。
 
 
 
