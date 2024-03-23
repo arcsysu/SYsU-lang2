@@ -83,6 +83,8 @@ struct TypeExpr : Obj
   {
     if (this == &other)
       return true;
+    if (this == nullptr || &other == nullptr)
+      return false;
     return __equal__(other);
   }
 
