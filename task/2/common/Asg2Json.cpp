@@ -162,7 +162,7 @@ Asg2Json::operator()(Expr* obj)
       break;
 
     case Expr::Cate::kRValue:
-      ret["valueCategory"] = "pralue";
+      ret["valueCategory"] = "prvalue";
       break;
 
     default:
