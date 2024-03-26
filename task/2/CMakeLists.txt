@@ -1,3 +1,5 @@
+include(config.cmake)
+
 if(TASK2_WITH STREQUAL "bison")
   message(AUTHOR_WARNING "使用 Bison 完成实验二")
   add_subdirectory(bison)
