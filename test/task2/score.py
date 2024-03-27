@@ -507,7 +507,7 @@ def score_one(
                 fprint(fp, "输出结果文件不存在：", judge_answer_path)
                 raise Error()
 
-            # 读取标准答案和输出结果
+            # 读取标准答案
             try:
                 with open(std_answer_path, "r") as f:
                     std_answer = json.load(f)
@@ -516,15 +516,6 @@ def score_one(
                 output = "标准答案文件损坏"
                 fprint(fp, "标准答案文件损坏：", std_answer_path)
                 raise Error(e)
-            try:
-                with open(judge_answer_path, "r") as f:
-                    judge_answer = json.load(f)
-                    gc.collect()
-            except Exception as e:
-                output = "输出结果文件损坏"
-                fprint(fp, "输出结果文件损坏：", judge_answer_path)
-                raise Error(e)
-
             # 转化成 yaml 格式输出
             try:
                 NodeHelper.filter_ast(std_answer)
@@ -534,6 +525,17 @@ def score_one(
                 output = "转化为yaml失败"
                 fprint(fp, "转化为yaml失败")
                 raise Error(e)
+                
+            # 读取输出结果
+            try:
+                with open(judge_answer_path, "r") as f:
+                    judge_answer = json.load(f)
+                    gc.collect()
+            except Exception as e:
+                output = "输出结果文件损坏"
+                fprint(fp, "输出结果文件损坏：", judge_answer_path)
+                raise Error(e)
+            # 转化成 yaml 格式输出
             try:
                 NodeHelper.filter_ast(judge_answer)
                 with open(cases_helper.of_case_bindir("output.yaml", case), "w") as f:
