@@ -231,19 +231,327 @@ operator()(ast::FunctionDefinitionContext* ctx) //处理函数定义，创建一
 
 在该部分会详细介绍实验的详细要求与上手步骤。
 
-实验二完成了实验一的解耦，将实验二的词法分析器的输入由实验一的源代码文件修改为了实验一的答案，具体流程如下图所示。
+助教们提前实现了实验二和实验一的解耦，将实验二的词法分析器的输入由实验一的源代码文件修改为了实验一的`answer.txt`文件（保证实验一没有完全做出来的同学，在做实验二的时候不受影响），具体流程如下图所示。
 
 ![解耦总览](../images/task2_antlr/antlr_input.jpg)
 
-在解耦这一部分我们留下了一些工作需要同学们完成，具体内容请同学们先看下图
+但是在解耦这一部分我们留下了一些工作需要同学们完成，具体内容请同学们先看下图
 
 ![antlr 任务一](../images/task2_antlr/task2_1.jpg)
 
-所以同学们首先需要填写`/task/2/antlr/SYsULexer.tokens`中所有测试样例需要用到的`token`名字，在构建项目之后`/build/task/2/antlr/SYsULexer.tokens.hpp`中会自动生成一些`k`字母开头的`constexper`定义，最后在`/task/2/antlr/SYsULexer.cpp`中对应位置添加`clang`风格的`token`名字与`k`开头的`token`名字的映射就完成了我们第一个任务的实现。
+同学们首先需要填写`/task/2/antlr/SYsULexer.tokens`中所有测试样例需要用到的`token`名字，在构建项目之后`/build/task/2/antlr/SYsULexer.tokens.hpp`中会自动生成一些`k`字母开头的`constexper`定义，最后在`/task/2/antlr/SYsULexer.cpp`中对应位置添加`clang`风格的`token`名字（也就是`answer.txt`每行的第一个单词）与`k`开头的`token`名字的映射就完成了我们的第一个任务。
 
 在同学们完成了上述的解耦工作之后，接着就需要完成`antlr`语法分析器的完成。同学们需要完成`/workspaces/SYsU-lang2/task/2/antlr/SYsUParser.g4`中的语法规则的编辑。对于语法规则应该如何编写，语法规则应该编写哪些内容，同学们可以根据测试样例的内容进行一一编写，接下来我们会以一些测试样例为例进行一些演示。
 
-当同学们完成了词
+在同学们完成词法单元的名字填写之前，直接运行从远程仓库拉下来的代码大概能得到 20 分左右。 在按照上一节中的指引填写词法单元的名字映射之后重新运行评分脚本，此时同学们可以获得 30 分左右。此时同学们在下图所示的几个测试样例之前的样例都是满分，所以下图所示的几个样例同学们首先要解决的测试样例。
 
+![antlr 任务一](../images/task2_antlr/scoreExam.jpg)
+
+要想一个测试样例拿到满分我们需要完成两个步骤，第一个步骤是对该样例中首次出现的语法规则在`/workspaces/SYsU-lang2/task/2/antlr/SYsUParser.g4`中进行定义。第二个步骤是在`/workspaces/SYsU-lang2/task/2/antlr/Ast2Asg.cpp`和`/workspaces/SYsU-lang2/task/2/antlr/Ast2Asg.hpp`中对我们新添加的语法规则进行处理，并且如果`Ast2Asg.cpp`中有新增函数，`hpp`文件需要同步更新。。
+
+那么就以下图所示的几个测试样例为例, 向同学们演示如何做我们的步骤一和步骤二。
+
+![antlr 任务一](../images/task2_antlr/scoreExam.jpg)
+
+通过观察`/workspaces/SYsU-lang2/test/cases/functional-1`中的第 17 到 22 个测试样例我们会发现，这几个测试样例中新出现的语法规则有
+```c++
+a * 5
+a / b
+a / 5
+a / 3
+a % 3
+```
+前面我们提到步骤一我们需要在`/workspaces/SYsU-lang2/task/2/antlr/SYsUParser.g4`中对测试样例新出现的语法规则进行定义，所以现在我们需要在`SYsUParser.g4`中对乘法表达式，处罚表达式以及取模表达式进行语法规则的添加。
+
+此时由于大家`pull`代码之后没有对`g4`文件做任何修改，它是如下图所示的。
+```c++
+postfixExpression
+    :   primaryExpression  
+    ;
+
+unaryExpression
+    :
+    (postfixExpression
+    |   unaryOperator unaryExpression
+    )
+    ;
+
+unaryOperator
+    :   Plus | Minus
+    ;
+
+additiveExpression
+    :   unaryExpression ((Plus|Minus) unaryExpression)*
+    ;
+```
+
+那么我们要对乘法，除法以及取模操作进行语法规则的添加的话，就需要考虑这一系列的运算和`additiveExpression`的优先级关系。所以我们采取了一个很巧妙的方式实现了乘法系列表达式的规则与加法系列表达式的规则。
+```c++
+multiplicativeExpression
+    :   unaryExpression ((Star|Div|Mod) unaryExpression)*
+    ;
+
+additiveExpression
+    :   multiplicativeExpression ((Plus|Minus) multiplicativeExpression)*
+    ;
+```
+因为在`multiplicativeExpression`中`((Star|Div|Mod) unaryExpression)*`带了一个`*`（这意味着括号内的一堆东西可以出现 0 次），所以我们可以认为`multiplicativeExpression`可以匹配到`unaryExpression`，这种情况下就退化到了同学们拿到手里的代码。
+```c++
+additiveExpression
+    :   unaryExpression ((Plus|Minus) unaryExpression)*
+    ;
+```
+同时也很好理解下面的代码可以代表加号左右都是`multiplicativeExpression`，以及加号左右一侧是`unaryExpression`，一侧是` multiplicativeExpression`，以及加号的左右两侧都是`unaryExpression`的情况。
+```c++
+additiveExpression
+    :   multiplicativeExpression ((Plus|Minus) multiplicativeExpression)*
+    ;
+```
+
+那么到这里就完成了我们前面所说的步骤一了，对当前测例中新出现的语法规则在`SYsUParser.g4`文件中进行了规则的添加。
+
+那么请同学们注意，在`SYsUParser.g4`中修改了已有的规则就需要在`Ast2Asg.cpp`中对应的处理函数处做修改。如果在`SYsUParser.g4`中添加了新的规则就需要在`Ast2Asg.cpp`中添加新的处理函数。
+
+因为我们刚刚步骤一的操作修改了`additiveExpression`，我们在`Ast2Asg.cpp`中找到下面的重载函数，那么同学们可能会有疑问，如何把这些重载函数和我们的`SYsUParser.g4`中的语法规则进行对应呢？通过传入参数即可判断，我们找到的这个重载函数的传入参数是`additiveExpression`加上`Context`类型的指针。
+
+```c++
+Expr*
+Ast2Asg::operator()(ast::AdditiveExpressionContext* ctx)
+{
+  auto children = ctx->children;
+  Expr* ret = self(dynamic_cast<ast::UnaryExpressionContext*>(children[0]));
+
+  for (unsigned i = 1; i < children.size(); ++i) {
+    auto node = make<BinaryExpr>();
+
+    auto token = dynamic_cast<antlr4::tree::TerminalNode*>(children[i])
+                   ->getSymbol()
+                   ->getType();
+    switch (token) {
+      case ast::Plus:
+        node->op = node->kAdd;
+        break;
+
+      case ast::Minus:
+        node->op = node->kSub;
+        break;
+
+      default:
+        ABORT();
+    }
+
+    node->lft = ret;
+    node->rht = self(dynamic_cast<ast::UnaryExpressionContext*>(children[++i]));
+    ret = node;
+  }
+
+  return ret;
+}
+```
+同学们心中可能还有一个疑问，`ast::AdditiveExpressionContext* ctx`是一个什么东西呢？因为这个类型的指针变量是`antlr`自动生成的代码中的变量类型，我们不需要进行修改，但是可以通过`vscode`的`转到定义`功能跳转到它的定义代码那里去了解，在这里我们只需要知道如何利用这个变量获取到我们想要的信息即可。
+
+上述代码中`auto children = ctx->children;`中的`ctx->children`可以获取到当前加法表达式上下文节点的所有子节点。在ANTLR生成的语法分析树中，每个节点可能有多个子节点，它们代表了该表达式的组成部分（例如，在表达式`a + b`中，`a`和`b`是子节点。
+
+同学们还记得你们拿到的代码吗
+```c++
+additiveExpression
+    :   unaryExpression ((Plus|Minus) unaryExpression)*
+    ;
+```
+这里的`unaryExpression`会被`children[0]`获取到，然后`*`代表出现0次或者无数次，那么`children[i]`如果存在的话就会代表`((Plus|Minus) unaryExpression)`。所以接下来如果函数能进入循环的话，循环首先会执行以下代码
+```c++
+auto node = make<BinaryExpr>();
+```
+通过对`BinaryExpr`进行右键点击->转到定义，会得到如下代码，这些代码是`asg.hpp`中的内容，它们位于`common`文件夹中，`common`文件夹中的所有代码都是不需要同学们进行修改的。
+```c++
+struct BinaryExpr : Expr
+{
+  enum Op
+  {
+    kINVALID,
+    kMul,
+    kDiv,
+    kMod,
+    kAdd,
+    kSub,
+    kGt,
+    kLt,
+    kGe,
+    kLe,
+    kEq,
+    kNe,
+    kAnd,
+    kOr,
+    kAssign,
+    kComma,
+    kIndex,
+  };
+```
+有了上述的铺垫，详细`switch`代码段中的代码同学们可以很容易地进行理解了。接下来是
+```c++
+    node->lft = ret;
+    node->rht =
+      self(dynamic_cast<ast::UnaryExpressionContext*>(children[++i]));
+    ret = node;
+```
+这段具体的作用是构建一个表示加法或减法操作的二元表达式树节点。这里的`node`是一个新创建的`BinaryExpr`对象，它代表了一个加法或减法运算。代码的主要步骤如下：`node->lft = ret;`：这行代码将`node`的左子节点(`lft`)设置为之前计算的表达式结果`ret`。在加法或减法表达式中，`ret`可以是前一个操作的结果，或者如果这是第一个操作，则是第一个操作数。`node->rht = self(dynamic_cast<ast::UnaryExpressionContext*>(children[++i]));`：这行代码处理加法或减法运算的右侧表达式。它首先通过`children[++i]`获取下一个子节点（即右侧的操作数），然后将这个子节点强制转换为`UnaryExpressionContextContext`类型，表示这是一个`UnaryExpression`。这个转换后的节点被传递给当前函数的递归调用`self()`，以解析这个子表达式并获取其计算结果。这个结果随后被设置为`node`的右子节点(`rht`)。
+
+介绍完同学们拿到的代码中的`Expr* Ast2Asg::operator()(ast::AdditiveExpressionContext* ctx)`函数之后，我们在前面提到了:在`SYsUParser.g4`中修改了已有的规则就需要在`Ast2Asg.cpp`中对应的处理函数处做修改。如果在`SYsUParser.g4`中添加了新的规则就需要在`Ast2Asg.cpp`中添加新的处理函数。
+
+由于我们将
+
+```c++
+additiveExpression
+    :   unaryExpression ((Plus|Minus) unaryExpression)*
+    ;
+```
+
+修改为了
+```c++
+additiveExpression
+    :   multiplicativeExpression ((Plus|Minus) multiplicativeExpression)*
+    ;
+```
+
+所以我们需要将
+```c++
+Expr*
+Ast2Asg::operator()(ast::AdditiveExpressionContext* ctx)
+{
+  auto children = ctx->children;
+  Expr* ret = self(dynamic_cast<ast::UnaryExpressionContext*>(children[0]));
+
+  for (unsigned i = 1; i < children.size(); ++i) {
+    auto node = make<BinaryExpr>();
+
+    auto token = dynamic_cast<antlr4::tree::TerminalNode*>(children[i])
+                   ->getSymbol()
+                   ->getType();
+    switch (token) {
+      case ast::Plus:
+        node->op = node->kAdd;
+        break;
+
+      case ast::Minus:
+        node->op = node->kSub;
+        break;
+
+      default:
+        ABORT();
+    }
+
+    node->lft = ret;
+    node->rht = self(dynamic_cast<ast::UnaryExpressionContext*>(children[++i]));
+    ret = node;
+  }
+
+  return ret;
+}
+```
+修改成为
+```c++
+Expr*
+Ast2Asg::operator()(ast::AdditiveExpressionContext* ctx)
+{
+  auto children = ctx->children;
+  // assert(dynamic_cast<ast::UnaryExpressionContext*>(children[0]));
+  Expr* ret =
+    self(dynamic_cast<ast::MultiplicativeExpressionContext*>(children[0]));
+
+  for (unsigned i = 1; i < children.size(); ++i) {
+    auto node = make<BinaryExpr>();
+
+    auto token = dynamic_cast<antlr4::tree::TerminalNode*>(children[i])
+                   ->getSymbol()
+                   ->getType();
+    switch (token) {
+      case ast::Plus:
+        node->op = node->kAdd;
+        break;
+
+      case ast::Minus:
+        node->op = node->kSub;
+        break;
+
+      default:
+        ABORT();
+    }
+
+    node->lft = ret;
+    node->rht =
+      self(dynamic_cast<ast::MultiplicativeExpressionContext*>(children[++i]));
+    ret = node;
+  }
+
+  return ret;
+}
+```
+并且由于我们在`SYsUParser.g4`文件中添加了
+```c++
+multiplicativeExpression
+    :   unaryExpression ((Star|Div|Mod) unaryExpression)*
+    ;
+```
+
+所以我们需要对应地在`Ast2Asg.cpp`添加
+```c++
+Expr*
+Ast2Asg::operator()(ast::MultiplicativeExpressionContext* ctx)
+{
+  auto children = ctx->children;
+  Expr* ret = self(dynamic_cast<ast::UnaryExpressionContext*>(children[0]));
+
+  for (unsigned i = 1; i < children.size(); ++i) {
+    auto node = make<BinaryExpr>();
+
+    auto token = dynamic_cast<antlr4::tree::TerminalNode*>(children[i])
+                   ->getSymbol()
+                   ->getType();
+    switch (token) {
+      case ast::Star:
+        node->op = node->kMul;
+        break;
+
+      case ast::Div:
+        node->op = node->kDiv;
+        break;
+
+      case ast::Mod:
+        node->op = node->kMod;
+        break;
+
+      default:
+        ABORT();
+    }
+
+    node->lft = ret;
+    node->rht = self(dynamic_cast<ast::UnaryExpressionContext*>(children[++i]));
+    ret = node;
+  }
+
+  return ret;
+}
+```
+以及在`Ast2Asg.hpp`中添加
+```c++
+ Expr* operator()(ast::MultiplicativeExpressionContext* ctx);
+```
+
+最后做一个简单的总结，需要同学们进行修改的代码文件有
+
+```bash
+/task/2/antlr/SYsULexer.tokens
+/task/2/antlr/SYsULexer.cpp
+/task/2/antlr/SYsUParser.g4
+/task/2/antlr/Ast2Asg.cpp
+/task/2/antlr/Ast2Asg.hpp
+```
+并且`common`文件夹中的代码不需要进行修改。
+
+需要同学们做的事情有两个
+
+1. 同学们首先需要填写`/task/2/antlr/SYsULexer.tokens`中所有测试样例需要用到的`token`名字，在构建项目之后`/build/task/2/antlr/SYsULexer.tokens.hpp`中会自动生成一些`k`字母开头的`constexper`定义，最后在`/task/2/antlr/SYsULexer.cpp`中对应位置添加`clang`风格的`token`名字（也就是`answer.txt`每行的第一个单词）与`k`开头的`token`名字的映射就完成了我们的第一个任务。
+
+2. 在`SYsUParser.g4`中修改了已有的规则就需要在`Ast2Asg.cpp`中对应的处理函数处做修改。如果在`SYsUParser.g4`中添加了新的规则就需要在`Ast2Asg.cpp`中添加新的处理函数。并且如果`Ast2Asg.cpp`中有新增函数，`hpp`文件需要同步更新。
 
 
