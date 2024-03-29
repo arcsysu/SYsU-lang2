@@ -18,7 +18,7 @@ int power(int a, int b){
     if (b % 2 == 1) return multiply(cur, a);
     else return cur;
 }
-const int maxlen = 2097152;
+#define maxlen 2097152
 int temp[maxlen], a[maxlen], b[maxlen], c[maxlen];
 
 int memmove(int dst[], int dst_pos, int src[], int len){
