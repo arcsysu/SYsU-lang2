@@ -838,6 +838,35 @@ start
       }
    ;
 ```
+### 其余代码解释
+``` cpp
+function_definition
+  : declaration_specifiers declarator
+    {
+      auto funcDecl = $2->dcst<asg::FunctionDecl>();
+      ASSERT(funcDecl);
+      // 设置当前全局的函数作用变量
+      par::gCurrentFunction = funcDecl; 
+      auto ty = par::gMgr.make<asg::Type>();
+      if (funcDecl->type != nullptr)
+        ty->texp = funcDecl->type->texp; 
+      ty->spec = $1->spec, ty->qual = $1->qual;
+      funcDecl->type = ty;
+
+    }
+    compound_statement
+    {	
+      $$ = par::gCurrentFunction;
+      $$->name = $2->name;
+      $$->body = $4;
+    }
+  ;
+```
+其文法定义为依据，但有两个语义动作的执行：
+
+- 在匹配到`declartion_specifiers declarator`的时候就要做后面的语义动作（即，想要他执行后面的代码），再匹配到最后的`compund_statement`的时候想要它再做后面的语义动作。
+- `$4`是因为分割之后，第一个大括号也被bison识别为了一部分语言，将其也计数了，但是这种分割这个时候不建议使用`$4`的数字，因为有时候bison会识别不出来，建议使用`$`+名字，即类似`$compund_statement`。
+
 ## 如何debug
 
 ### yydebug
@@ -876,3 +905,7 @@ void printToTxtFile(std::string message) {
 比如，如下图所示。新建一个`ty`的`Type`对象，更改`ty`，然后改变`$2`的`type`指针的指向为更改后的`ty`。如果直接进行`$2->type->spec=...`是不运行的，因为ASG结构体的`Type`为`const Type *`类型。
 
 ![alt text](../images/bison/type.png)
+
+## 其他说明
+实验二的BreakStmt中的loop属性，这个属性不用处理不用管，本实验不会用到（实验三也不会用到）
+![alt text](../images/bison/loop.png)
