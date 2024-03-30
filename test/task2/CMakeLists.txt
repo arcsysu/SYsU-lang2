@@ -72,13 +72,14 @@ if(TASK2_REVIVE)
   message(AUTHOR_WARNING "在实验二复活：请在构建 task1-answer 后再使用 task2 的测试项目。")
 
 else()
-  # 否则以实验零的标准答案作为输入
+  # 否则以实验一的输出作为输入
   add_dependencies(task2-score task0-answer)
 
   foreach(_case ${_task2_cases})
     set(_output_dir ${CMAKE_CURRENT_BINARY_DIR}/${_case})
     file(MAKE_DIRECTORY ${_output_dir})
-    add_test(NAME task2/${_case} COMMAND task2 ${_task0_out}/${_case}
+    add_test(NAME task2/${_case} 
+             COMMAND task2 ${_task1_out}/${_case}/answer.txt
                                          ${_output_dir}/output.json)
     add_test(
       NAME test2/${_case}
@@ -88,6 +89,6 @@ else()
         ${CTEST_COMMAND} ${TASK2_LOG_LEVEL} --single ${_case})
   endforeach()
 
-  message(AUTHOR_WARNING "实验二复活已禁用，请在构建 task0-answer 后再使用 task2 的测试项目。")
+  message(AUTHOR_WARNING "实验二复活已禁用，请在构建 task1-output 后再使用 task2 的测试项目。")
 
 endif()
