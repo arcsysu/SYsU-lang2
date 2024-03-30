@@ -339,13 +339,14 @@ def check_ast(
         key_cor, level_app_output = node_helper.check_key(key, key_level)
         level_output += level_app_output
         if not key_cor:
+            node_helper.level1_correct = False
             key_err.append(key)
     if ast0.get("inner") is not None and ast0.get("kind") not in kind_initlist:
         inner_status = 0
         son_err_status = 1
         check_inner()
     # 输出 level_output
-    if level_output != "本节点情况 level 1: " and log_level >= 1:
+    if not node_helper.level1_correct and log_level >= 1:
         fprint(fp, level_output)
         node_helper.to_yaml(fp, key_level, key_err, inner_err_idx)
 
@@ -357,13 +358,14 @@ def check_ast(
         key_cor, level_app_output = node_helper.check_key(key, key_level)
         level_output += level_app_output
         if not key_cor:
+            node_helper.level2_correct = False
             key_err.append(key)
     if ast0.get("inner") is not None and ast0.get("kind") in kind_initlist:
         inner_status = 2
         son_err_status = 3
         check_inner()
     # 输出 level_output
-    if level_output != "本节点情况 level 2: " and log_level >= 2:
+    if not node_helper.level2_correct and log_level >= 2:
         fprint(fp, level_output)
         node_helper.to_yaml(fp, key_level, key_err, inner_err_idx)
 
@@ -375,9 +377,10 @@ def check_ast(
         key_cor, level_app_output = node_helper.check_key(key, key_level)
         level_output += level_app_output
         if not key_cor:
+            node_helper.level3_correct = False
             key_err.append(key)
     # 输出 level_output
-    if level_output != "本节点情况 level 3: " and log_level >= 3:
+    if not node_helper.level3_correct and log_level >= 3:
         fprint(fp, level_output)
         node_helper.to_yaml(fp, key_level, key_err, inner_err_idx)
     # new--------------------------------------------------------
@@ -507,7 +510,7 @@ def score_one(
                 fprint(fp, "输出结果文件不存在：", judge_answer_path)
                 raise Error()
 
-            # 读取标准答案
+            # 读取标准答案和输出结果
             try:
                 with open(std_answer_path, "r") as f:
                     std_answer = json.load(f)
@@ -516,6 +519,15 @@ def score_one(
                 output = "标准答案文件损坏"
                 fprint(fp, "标准答案文件损坏：", std_answer_path)
                 raise Error(e)
+            try:
+                with open(judge_answer_path, "r") as f:
+                    judge_answer = json.load(f)
+                    gc.collect()
+            except Exception as e:
+                output = "输出结果文件损坏"
+                fprint(fp, "输出结果文件损坏：", judge_answer_path)
+                raise Error(e)
+
             # 转化成 yaml 格式输出
             try:
                 NodeHelper.filter_ast(std_answer)
@@ -525,17 +537,6 @@ def score_one(
                 output = "转化为yaml失败"
                 fprint(fp, "转化为yaml失败")
                 raise Error(e)
-                
-            # 读取输出结果
-            try:
-                with open(judge_answer_path, "r") as f:
-                    judge_answer = json.load(f)
-                    gc.collect()
-            except Exception as e:
-                output = "输出结果文件损坏"
-                fprint(fp, "输出结果文件损坏：", judge_answer_path)
-                raise Error(e)
-            # 转化成 yaml 格式输出
             try:
                 NodeHelper.filter_ast(judge_answer)
                 with open(cases_helper.of_case_bindir("output.yaml", case), "w") as f:
