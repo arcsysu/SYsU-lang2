@@ -118,6 +118,17 @@ class NodeHelper:
         if value1 is None:
             level_output += "\n键 '" + key + "' 在用户答案节点内不存在"
             return False, level_output
+        if type(value0) is not type(value1):
+            level_output += "\n键 '" + key + "' 对应的值类型错误"
+            return False, level_output
+        if key == "type":
+            qualType0 = value0.get("qualType")
+            qualType1 = value1.get("qualType")
+            if qualType0 is None:
+                return True, level_output
+            if qualType1 is None or qualType0 != qualType1:
+                level_output += "\n键 '" + key + "' 的qualType对应值错误"
+                return False, level_output
         if value0 != value1:
             level_output += "\n键 '" + key + "' 错误"
             return False, level_output
@@ -528,7 +539,7 @@ def score_one(
                 output = "转化为yaml失败"
                 fprint(fp, "转化为yaml失败")
                 raise Error(e)
-                
+
             # 读取输出结果
             try:
                 with open(judge_answer_path, "r") as f:
