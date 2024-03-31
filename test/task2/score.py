@@ -129,6 +129,7 @@ class NodeHelper:
             if qualType1 is None or qualType0 != qualType1:
                 level_output += "\n键 '" + key + "' 的qualType对应值错误"
                 return False, level_output
+            return True, level_output
         if value0 != value1:
             level_output += "\n键 '" + key + "' 错误"
             return False, level_output
