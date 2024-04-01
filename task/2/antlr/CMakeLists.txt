@@ -18,6 +18,7 @@ add_custom_command(
     ${CMAKE_CURRENT_SOURCE_DIR}/SYsULexer.tokens
     ${CMAKE_CURRENT_BINARY_DIR}/SYsULexer.tokens.hpp SYsULexerTokens
   MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/SYsULexer.py
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/SYsULexer.tokens
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 file(GLOB _common_src ../common/*)
