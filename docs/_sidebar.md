@@ -20,6 +20,9 @@
 * Task3
   * [待续](README.md)
 * Task4
-  * [待续](README.md)
+  * [实验介绍](task4_doc/overview.md)
+  * [框架代码介绍](task4_doc/framework.md)
+  * [优化算法](task4_doc/optimizations.md)
+  * [API 速查](task4_doc/apidoc.md)
 * Q&A
   * [常见问题与答案](QA.md)
