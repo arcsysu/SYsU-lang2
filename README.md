@@ -31,7 +31,7 @@
 
 ## 安装
 
-我们提供了开箱即用的标准化开发容器，[这篇文章](https://zwshan.github.io/SYsU-lang-doc/#/introduction/environment)介绍了如何在你的电脑上拉取并使用它。如果同学们可以使用 GitHub Codespaces，一种简单且快速的体验方式是直接点击仓库右上角的 `Code` 来一键式地创建 Codespace，只需经过一段时间的等待就可以直接使用。
+我们提供了开箱即用的标准化开发容器，[这篇文章](https://arcsysu.github.io/SYsU-lang2/#/introduction/environment)介绍了如何在你的电脑上拉取并使用它。如果同学们可以使用 GitHub Codespaces，一种简单且快速的体验方式是直接点击仓库右上角的 `Code` 来一键式地创建 Codespace，只需经过一段时间的等待就可以直接使用。
 
 如果你不想使用容器而是想直接在自己的 Linux 环境中使用本框架，请使用以下 bash 命令：
 
