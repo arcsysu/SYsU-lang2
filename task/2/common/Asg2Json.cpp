@@ -105,6 +105,40 @@ Asg2Json::operator()(TypeExpr* texp)
     return ret;
   }
 
+  if (auto p = texp->dcst<PointerType>()) {
+
+    if (auto arrayType = texp->sub->dcst<ArrayType>()) {
+      std::string ret;
+      if (arrayType->sub != nullptr) {
+        ret = " (*)";
+        ret += self(arrayType->sub);
+      } else {
+        ret = " *";
+      }
+      
+      return ret;
+    }
+
+    if (auto functionType = texp->sub->dcst<FunctionType>()) {
+      std::string ret;
+      ret = " (*)";
+      ret += "(";
+      if (!functionType->params.empty()) {
+        auto it = functionType->params.begin(),
+             end = functionType->params.end();
+        while (true) {
+          ret += self(*it);
+          if (++it == end)
+            break;
+          ret += ", ";
+        }
+      }
+      ret.push_back(')');
+
+      return ret;
+    }
+  }
+
   ABORT();
 }
 
@@ -686,34 +720,8 @@ Asg2Json::operator()(FunctionDecl* obj)
     json::Object pobj;
     pobj["kind"] = "ParmVarDecl";
     pobj["name"] = i->name;
-    switch (i->type->spec) {
-      case Type::Spec::kINVALID:
-        pobj["type"] = "INVALID";
-        break;
+    pobj["type"] = json::Object({ { "qualType", self(i->type) } });
 
-      case Type::Spec::kVoid:
-        pobj["type"] = "void";
-        break;
-
-      case Type::Spec::kChar:
-        pobj["type"] = "char";
-        break;
-
-      case Type::Spec::kInt:
-        pobj["type"] = "int";
-        break;
-
-      case Type::Spec::kLong:
-        pobj["type"] = "long";
-        break;
-
-      case Type::Spec::kLongLong:
-        pobj["type"] = "long long";
-        break;
-
-      default:
-        ABORT();
-    }
     inner.push_back(std::move(pobj));
   }
 

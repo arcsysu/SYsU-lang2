@@ -208,8 +208,13 @@ Typing::operator()(BinaryExpr* obj)
 
     case BinaryExpr::kIndex: {
       auto arrayType = lft->type->texp->dcst<ArrayType>();
-      if (arrayType == nullptr)
-        ABORT();
+      if (arrayType == nullptr) {
+        // 指针需要取出其sub类型
+        auto pointerType = lft->type->texp->dcst<PointerType>();
+        if (pointerType == nullptr)
+          ABORT();
+        arrayType = pointerType->sub->dcst<ArrayType>();
+      }
 
       if (rht->type->texp != nullptr)
         ABORT();
@@ -227,7 +232,7 @@ Typing::operator()(BinaryExpr* obj)
       lft = ensure_rvalue(lft);
       rht = ensure_rvalue(rht);
 
-      obj->type = mTypeCache(lft->type->spec, Type::Qual(), arrayType->sub);
+      obj->type = mTypeCache(lft->type->spec, lft->type->qual, arrayType->sub);
       obj->cate = Expr::Cate::kLValue; // 数组的索引是左值
     } break;
 
@@ -252,7 +257,15 @@ Typing::operator()(CallExpr* obj)
 
   auto f2p = make<ImplicitCastExpr>();
   f2p->kind = ImplicitCastExpr::kFunctionToPointerDecay;
-  f2p->type = obj->head->type;
+  // 加上指针类型
+  auto type = make<Type>();
+  auto pointerType = make<PointerType>();
+  type->spec = obj->head->type->spec;
+  type->qual = obj->head->type->qual;
+  pointerType->sub = obj->head->type->texp;
+  type->texp = pointerType;
+
+  f2p->type = type;
   f2p->sub = obj->head;
   obj->head = f2p;
 
@@ -462,6 +475,18 @@ Typing::operator()(FunctionDecl* obj)
   for (int i = obj->params.size(); --i != -1;) {
     self(obj->params[i]);
     funcType->params[i] = obj->params[i]->type;
+    // 将此处Arraytype变为PointerType
+    if (obj->params[i]->type->texp->dcst<ArrayType>()) {
+      auto type = make<Type>();
+      type->spec = obj->params[i]->type->spec;
+      type->qual = obj->params[i]->type->qual;
+      auto pointerType = make<PointerType>();
+      pointerType->sub = obj->params[i]->type->texp;
+      type->texp = pointerType;
+      // 两个都要改
+      funcType->params[i] = type;
+      obj->params[i]->type = type;
+    }
   }
 
   if (obj->body) {
@@ -481,7 +506,15 @@ Typing::ensure_rvalue(Expr* exp)
     auto cst = make<ImplicitCastExpr>();
     cst->kind = ImplicitCastExpr::kArrayToPointerDecay;
 
-    cst->type = mTypeCache(exp->type->spec, Type::Qual(), exp->type->texp);
+    // 加上指针类型
+    auto type = make<Type>();
+    auto pointerType = make<PointerType>();
+    type->spec = exp->type->spec;
+    type->qual = exp->type->qual;
+    pointerType->sub = exp->type->texp;
+    type->texp = pointerType;
+
+    cst->type = mTypeCache(type->spec, type->qual, type->texp);
     cst->cate = Expr::Cate::kRValue;
 
     cst->sub = exp;
@@ -568,11 +601,22 @@ Typing::assignment_cast(Expr* lft, Expr* rht)
   if (lft->type->texp != nullptr) {
     // 最多只支持数组类型被赋值
     auto arrTy = lft->type->texp->dcst<ArrayType>();
-    if (!arrTy)
-      ABORT();
+    if (!arrTy) {
+      auto pointerType = lft->type->texp->dcst<PointerType>();
+      if (pointerType == nullptr)
+        ABORT();
+      arrTy = pointerType->sub->dcst<ArrayType>();
+    }
+
     auto arrTy2 = rht->type->texp->dcst<const ArrayType>();
-    if (arrTy2 == nullptr)
-      ABORT();
+    if (arrTy2 == nullptr) {
+      // 指针需要取出其sub类型
+      auto pointerType = rht->type->texp->dcst<PointerType>();
+      if (pointerType == nullptr)
+        ABORT();
+
+      arrTy2 = pointerType->sub->dcst<const ArrayType>();
+    }
 
     // 声明符必须相同
     if (lft->type->spec != rht->type->spec)
@@ -687,7 +731,7 @@ Typing::infer_initlist(const std::vector<Expr*>& list,
 
   if (auto arrTy = to->texp->dcst<ArrayType>()) {
     auto ret = make<InitListExpr>();
-    ret->type = mTypeCache(to->spec, Type::Qual(), to->texp);
+    ret->type = mTypeCache(to->spec, to->qual, to->texp);
     ret->cate = Expr::Cate::kRValue;
 
     Type elemTy;
