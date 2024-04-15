@@ -18,7 +18,9 @@
   * [使用 bison 完成 Task2](task2_doc/bison.md)
   * [使用 antlr 完成 Task2](task2_doc/antlr.md)
 * Task3
-  * [待续](README.md)
+  * [实验介绍](task3_doc/overview.md)
+  * [Emit IR 介绍](task3_doc/code.md)
+  * [生成 LLVM IR](task3_doc/ir.md)
 * Task4
   * [实验介绍](task4_doc/overview.md)
   * [框架代码介绍](task4_doc/framework.md)
