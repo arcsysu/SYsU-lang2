@@ -9,7 +9,7 @@ EmitIR 类的功能就是读取 Json2Asg 类输出的抽象语义图 asg::Transl
 llvm::Module& operator()(asg::TranslationUnit* tu);
 ```
 
-EmitIR 类能够为不同的 ASG 中的节点（如表达式、语句、函数等）生成其对应的 LLVM IR 的，同时，也能够递归处理 ASG 中的复杂结构，如函数内部的语句，复杂表达式中的子表达式等，生成对应的 LLVM IR。
+EmitIR 类能够为 ASG 中的不同节点（如表达式、语句、函数等）生成其对应的 LLVM IR ，也能够递归处理 ASG 中的复杂结构，如函数内部的语句，复杂表达式中的子表达式等，生成相对应的 LLVM IR。
 
 与实验二中的 Typing 类和 Asg2Json 类的方法相似，EmitIR同样以重载 operator() 的方法，来支持以同样的调用方式，根据不同的参数匹配不同的 operator() 函数，完成对不同的 ASG 节点生成对应的 LLVM IR 的功能。
 
@@ -33,8 +33,25 @@ EmitIR::operator()(asg::TranslationUnit* tu)
 }
 ```
 
-接着完善处理 VarDecl 和 FunctionDecl 的节点的函数，再到完善处理类型和表达式值的函数，由 FunctionDecl 可以到完善处理语句节点的函数，同时，不断地进行测试，根据没过的测例一点点查出缺少什么部分、什么功能，逐渐发散，缺啥补啥，在 EmitIR.hpp 中添加函数声明，在 EmitIR.cpp 中进行实现。
+然后针对不同的 Decl ，我们需要在这里添加相应的跳转。
 
+```c++
+void
+EmitIR::operator()(Decl* obj)
+{
+  // TODO: 添加变量声明处理的跳转
 
+  if (auto p = obj->dcst<FunctionDecl>())
+    return self(p);
 
+  ABORT();
+}
+```
+
+之后大家需要完善处理不同 Decl ，比如 VarDecl 和 FunctionDecl 的节点的函数。
+其它类型的实现思路也是类似的，可供参考的实现路线是：  
+声明( Decl ) -> 类型( Type ) -> 表达式( Expr ) -> 语句( Stmt )  
+在这个过程中，大家需要善用我们提供的测试和调试功能，比对答案及输出结果，缺啥补啥，逐步完善 EmitIR 类。
+
+<!-- 再到完善处理类型和表达式值的函数，由 FunctionDecl 可以到完善处理语句节点的函数，同时，不断地进行测试，根据没过的测例一点点查出缺少什么部分、什么功能，逐渐发散，缺啥补啥，在 EmitIR.hpp 中添加函数声明，在 EmitIR.cpp 中进行实现。 -->
 
