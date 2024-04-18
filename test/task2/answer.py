@@ -1,5 +1,5 @@
-"""搜索指定目录下的所有 .sysu.c 文件，调用 `clang -cc1 -ast-dump=json`
-获取输出，将输出保存到同名输出目录 answer.json 文件中。
+"""对给定的测例表调用 `clang -cc1 -ast-dump=json` 获取输出，
+将输出保存到同名输出目录 answer.json 文件中。
 """
 
 import sys

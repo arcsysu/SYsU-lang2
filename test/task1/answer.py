@@ -1,5 +1,5 @@
-"""搜索指定目录下的所有 .sysu.c 文件，调用 `clang -cc1 -dump-tokens`
-获取输出，将输出保存到同名输出目录 answer.txt 文件中。
+"""对给定的测例表调用 `clang -cc1 -dump-tokens` 获取输出，
+将输出保存到同名输出目录下的 answer.txt 文件中。
 """
 
 import sys
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     for case in cases_helper.cases:
         path = cases_helper.of_bindir(case.name + "/answer.txt", True)
         print(path, end=" ... ", flush=True)
-        with open(path, "wb") as f:
+        with open(path, "w", encoding="utf-8") as f:
             subps.run(
                 [
                     args.clang_exe,

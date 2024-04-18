@@ -26,16 +26,17 @@ add_custom_target(
   task3-answer
   ${Python3_EXECUTABLE}
   ${CMAKE_CURRENT_SOURCE_DIR}/answer.py
-  ${_task0_out}
+  ${TEST_CASES_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}
   ${TASK3_CASES_TXT}
   ${CLANG_EXECUTABLE}
   ${_rtlib_dir}
+  ${TEST_RTLIB_SO}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   USES_TERMINAL
   SOURCES answer.py)
 
-add_dependencies(task3-answer task0-answer)
+add_dependencies(task3-answer task0-answer test-rtlib)
 
 # 对实验进行评分
 add_custom_target(
@@ -43,7 +44,7 @@ add_custom_target(
   COMMAND
     ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/score.py ${TEST_CASES_DIR}
     ${CMAKE_CURRENT_BINARY_DIR} ${TASK3_CASES_TXT} ${CTEST_COMMAND}
-    ${CLANG_PLUS_EXECUTABLE} $<TARGET_FILE:test-rtlib>
+    ${CLANG_PLUS_EXECUTABLE} ${TEST_RTLIB_SO}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   USES_TERMINAL
   SOURCES score.py)
@@ -66,8 +67,8 @@ if(TASK3_REVIVE)
       COMMAND
         ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/score.py
         ${TEST_CASES_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${TASK3_CASES_TXT}
-        ${CTEST_COMMAND} ${CLANG_PLUS_EXECUTABLE} $<TARGET_FILE:test-rtlib>
-        --single ${_case})
+        ${CTEST_COMMAND} ${CLANG_PLUS_EXECUTABLE} ${TEST_RTLIB_SO} --single
+        ${_case})
   endforeach()
 
   message(AUTHOR_WARNING "在实验三复活：请在构建 task2-answer 后再使用 task3 的测试项目。")
@@ -86,8 +87,8 @@ else()
       COMMAND
         ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/score.py
         ${TEST_CASES_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${TASK3_CASES_TXT}
-        ${CTEST_COMMAND} ${CLANG_PLUS_EXECUTABLE} $<TARGET_FILE:test-rtlib>
-        --single ${_case})
+        ${CTEST_COMMAND} ${CLANG_PLUS_EXECUTABLE} ${TEST_RTLIB_SO} --single
+        ${_case})
   endforeach()
 
   message(AUTHOR_WARNING "实验三复活已禁用，请在构建 task0-answer 后再使用 task3 的测试项目。")

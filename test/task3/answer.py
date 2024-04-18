@@ -1,5 +1,7 @@
-"""搜索指定目录下的所有 .sysu.c 文件，调用 `clang -cc1 -O0 -S -emit-llvm`
-获取输出，将输出保存到同名输出目录 answer.ll 文件中。
+"""对给定的测例表调用 `clang -cc1 -O0 -S -emit-llvm` 获取输出，
+将输出保存到同名输出目录下的 answer.ll 文件中。
+然后再调用 Clang 编译 answer.ll 为 answer.exe，
+再运行 answer.exe，将输出保存到 answer.out 和 answer.err 文件中。
 """
 
 import sys
@@ -21,7 +23,8 @@ if __name__ == "__main__":
     parser.add_argument("bindir", help="输出目录")
     parser.add_argument("cases_file", help="测例表路径")
     parser.add_argument("clang_exe", help="Clang 程序路径")
-    parser.add_argument("rtlib", help="运行时库路径")
+    parser.add_argument("rtlib", help="运行时库源码路径")
+    parser.add_argument("rtlib_a", help="运行时库文件路径")
     args = parser.parse_args()
     print_parsed_args(parser, args)
 
@@ -36,10 +39,11 @@ if __name__ == "__main__":
     print("完成")
 
     for case in cases_helper.cases:
-        path = cases_helper.of_bindir(case.name + "/answer.ll", True)
-        print(path, end=" ... ", flush=True)
-        with open(path, "wb") as f:
-            subps.run(
+        # 生成 LLVM IR
+        ll_path = cases_helper.of_case_bindir("answer.ll", case, True)
+        print(ll_path, end=" ... ", flush=True)
+        with open(ll_path, "w", encoding="utf-8") as f:
+            retn = subps.run(
                 [
                     args.clang_exe,
                     "-cc1",
@@ -50,10 +54,59 @@ if __name__ == "__main__":
                     osp.join(args.rtlib, "include"),
                     osp.join(args.srcdir, case.name),
                     "-o",
-                    "-"
+                    "-",
                 ],
-                stdout=f
-            )
+                stdout=f,
+            ).returncode
+        if retn:
+            print("FAIL", retn)
+            exit(1)
         print("OK")
+
+        # 再将 LLVM IR 编译为二进制程序
+        exe_path = cases_helper.of_case_bindir("answer.exe", case, True)
+        print(exe_path, end=" ... ", flush=True)
+        with open(
+            cases_helper.of_case_bindir("answer.compile", case), "w", encoding="utf-8"
+        ) as f:
+            retn = subps.run(
+                [
+                    args.clang_exe,
+                    "-o",
+                    exe_path,
+                    "-O0",
+                    args.rtlib_a,
+                    ll_path,
+                ],
+                stdout=f,
+                stderr=f,
+            ).returncode
+        if retn:
+            print("FAIL", retn)
+            exit(2)
+        print("OK")
+
+        # 运行二进制程序，得到程序输出
+        out_path = cases_helper.of_case_bindir("answer.out", case, True)
+        err_path = cases_helper.of_case_bindir("answer.err", case, True)
+        print(out_path, end=" ... ", flush=True)
+        print("OK")
+        print(err_path, end=" ... ", flush=True)
+        with open(out_path, "w", encoding="utf-8") as f, open(
+            err_path, "w", encoding="utf-8"
+        ) as ferr:
+            try:
+                retn = subps.run(
+                    [exe_path],
+                    stdout=f,
+                    stderr=ferr,
+                    stdin=cases_helper.open_case_input(case)[1],
+                    timeout=20,
+                ).returncode
+                ferr.write(f"Return Code: {retn}\n")
+            except subps.TimeoutExpired:
+                print("TIMEOUT")
+            else:
+                print("OK")
 
     cache_cases(args.bindir, cache)

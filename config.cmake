@@ -16,10 +16,10 @@ set(TASK2_REVIVE ON)
 set(TASK2_LOG_LEVEL 3)
 
 # 是否在实验三复活，ON或OFF
-set(TASK3_REVIVE OFF)
+set(TASK3_REVIVE ON)
 
 # 是否在实验四复活，ON或OFF
-set(TASK4_REVIVE OFF)
+set(TASK4_REVIVE ON)
 
 # ############################################################################ #
 # 以下内容为内部环境配置，一般情况下不需要学生修改，学生本地的修改对实验评测无影响。
@@ -72,6 +72,6 @@ set(TASK3_EXCLUDE_REGEX "^performance/.*")
 set(TASK3_CASES_TXT "")
 
 # 实验四排除测例名的正则式
-set(TASK4_EXCLUDE_REGEX "^mini-performance/.*")
+set(TASK4_EXCLUDE_REGEX "^functional-.*|^mini-performance/.*")
 # 实验四测例表，非空时忽略 EXCLUDE_REGEX
 set(TASK4_CASES_TXT "")

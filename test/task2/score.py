@@ -84,7 +84,9 @@ class NodeHelper:
     def to_yaml(
         self, fp: TextIOWrapper, lv: int, key_to_add: list, inner_err_idx: list
     ) -> None:
-        fprint(fp, "\n>----------------------------对比开始----------------------------")
+        fprint(
+            fp, "\n>----------------------------对比开始----------------------------"
+        )
         ast0_cp = dict()
         ast1_cp = dict()
         for key in key_to_add:
@@ -103,7 +105,10 @@ class NodeHelper:
             inner_cp_idx = i + 1
         fprint(fp, "\n标准答案节点: \n" + yaml.dump(ast0_cp))
         fprint(fp, "\n用户答案节点: \n" + yaml.dump(ast1_cp))
-        fprint(fp, "\n<----------------------------对比结束----------------------------\n\n")
+        fprint(
+            fp,
+            "\n<----------------------------对比结束----------------------------\n\n",
+        )
         return
 
     def to_dot(self, fp: TextIOWrapper) -> None:
@@ -299,7 +304,9 @@ def check_ast(
         and key not in level2_kind
         and key not in key_ignore
     ]
+
     def check_inner():
+
         def goon_check_ast():
             for i in range(len(value0)):
                 son_node_helper = check_ast(
@@ -396,7 +403,6 @@ def check_ast(
         fprint(fp, level_output)
         node_helper.to_yaml(fp, key_level, key_err, inner_err_idx)
     # new--------------------------------------------------------
-
     """# old--------------------------------------------------------
     # 遍历 ast0 的每一个键值对
     for key, value0 in ast0.items():
@@ -570,17 +576,18 @@ def score_one(
             fprint(fp, "生成树中level1节点总数:" + f"{ast_helper.level1_all_count}")
             fprint(
                 fp,
-                "kind, name, value正确的节点数:" + f"{ast_helper.level1_correct_count}",
+                "level1: kind, name, value正确:"
+                + f"{ast_helper.level1_correct_count}/{ast_helper.level1_all_count}",
             )
             fprint(
                 fp,
-                "type, InitListExpr生成树正确的节点数:"
-                + f"{ast_helper.level2_correct_count}",
+                "level2: type, InitListExpr生成树正确:"
+                + f"{ast_helper.level2_correct_count}/{ast_helper.all_count}",
             )
             fprint(
                 fp,
-                "除id外其他属性全部正确的节点数:"
-                + f"{ast_helper.level3_correct_count}",
+                "level3: 除id外其他属性全部正确:"
+                + f"{ast_helper.level3_correct_count}/{ast_helper.all_count}",
             )
             score = max_score * (
                 ast_helper.level1_correct_count * 0.6 / ast_helper.level1_all_count

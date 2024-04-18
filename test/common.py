@@ -51,12 +51,11 @@ class CasesHelper(NamedTuple):
                     name, weight = splits
                     weight = float(weight)
 
-                base_name = os.path.basename(name)
-                assert base_name.endswith(".sysu.c")
+                assert name.endswith(".sysu.c")
 
                 input_path = os.path.join(
                     srcdir,
-                    base_name.rstrip(".sysu.c") + ".in",
+                    name.rstrip(".sysu.c") + ".in",
                 )
                 if not os.path.exists(input_path):
                     input_path = None
