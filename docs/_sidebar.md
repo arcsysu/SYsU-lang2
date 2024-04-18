@@ -21,6 +21,7 @@
   * [实验介绍](task3_doc/overview.md)
   * [Emit IR 介绍](task3_doc/code.md)
   * [生成 LLVM IR](task3_doc/ir.md)
+  * [上手教程](task3_doc/start.md)
 * Task4
   * [实验介绍](task4_doc/overview.md)
   * [框架代码介绍](task4_doc/framework.md)
