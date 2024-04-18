@@ -106,7 +106,6 @@ Asg2Json::operator()(TypeExpr* texp)
   }
 
   if (auto p = texp->dcst<PointerType>()) {
-
     if (auto arrayType = texp->sub->dcst<ArrayType>()) {
       std::string ret;
       if (arrayType->sub != nullptr) {
@@ -115,7 +114,7 @@ Asg2Json::operator()(TypeExpr* texp)
       } else {
         ret = " *";
       }
-      
+
       return ret;
     }
 
