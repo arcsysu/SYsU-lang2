@@ -139,9 +139,11 @@ sysu::StaticCallCounter::run(Module &module, ModuleAnalysisManager &) {
   }
   return result;
 }
+
+AnalysisKey sysu::StaticCallCounter::Key;
 ```
 
-定义和实现分析pass后，我们需要在其他pass中调用该pass。下面的`StaticCallCounterPrinter`调用了定义、实现、注册好的`StaticCallCounter`，将分析结果以表格的形式输出到文件中：
+注意`static llvm::AnalysisKey Key`是一个静态成员变量，在实现时需要额外声明，否则会出现静态变量未声明的报错。定义和实现分析pass后，我们需要在其他pass中调用该pass。下面的`StaticCallCounterPrinter`调用了定义、实现、注册好的`StaticCallCounter`，将分析结果以表格的形式输出到文件中：
 
 ```C++
 PreservedAnalyses
