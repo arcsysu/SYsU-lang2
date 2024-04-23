@@ -5,19 +5,20 @@
 * 注册优化pass：在`main.cpp`中注册需要使用的优化pass，并指定优化顺序
 * 实现优化pass：在optimizor.hpp中定义需要使用的优化pass类，并在其他文件中实现定义的优化pass的函数
 
-### 注册优化pass
+### 注册优化pass和分析pass
 
 注册优化pass的代码主要在`main.cpp`的`opt`函数中：
 
 ```C++
 void
-opt(llvm::Module& mod)
+opt(llvm::Module& mod, llvm::raw_fd_ostream &logFile)
 {
   // 定义分析pass的管理器
   LoopAnalysisManager LAM;
   FunctionAnalysisManager FAM;
   CGSCCAnalysisManager CGAM;
   ModuleAnalysisManager MAM;
+  ModulePassManager MPM;
 
   // 注册分析pass的管理器
   PassBuilder PB;
@@ -27,19 +28,24 @@ opt(llvm::Module& mod)
   PB.registerLoopAnalyses(LAM);
   PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
 
-  // 定义优化pass的管理器
-  ModulePassManager MPM;
+  // 添加分析pass到管理器中
+  MAM.registerPass([]() { return sysu::StaticCallCounter(); });
 
   // 添加优化pass到管理器中
-  MPM.addPass(sysu::HelloWorldPass(llvm::errs()));
-  MPM.addPass(sysu::ConstantFolding(llvm::errs()));
+  MPM.addPass(sysu::HelloWorldPass(logFile));
+  MPM.addPass(sysu::StaticCallCounterPrinter(logFile));
 
   // 运行优化pass
   MPM.run(mod, MAM);
 }
 ```
 
-以上代码的注释清晰地呈现了LLVM IR优化pass的注册过程。同学们只需要将定义好的优化pass按照上述方式实例化后使用`MPM.addPass()`函数添加即可。需要注意的是优化pass的执行顺序与第三部分添加优化pass的顺序相同，因此在优化前需要考虑优化次序对优化结果的影响。
+以上代码的注释清晰地呈现了LLVM IR优化pass和分析pass的注册过程：
+
+* 优化pass：使用`MPM.addPass(sysu::optPass())`函数添加
+* 分析pass：使用`MAM.registerPass([]() { return sysu::analysisPass(); })`函数添加
+
+需要注意的是优化pass的执行顺序与第三部分添加优化pass的顺序相同，因此在优化前需要考虑优化次序对优化结果的影响；而分析pass只会在被使用时执行，因此添加分析pass的顺序不影响执行顺序。实例化优化pass时我们传入了`logFile`变量，该变量能让我们在pass中将中间结果输出到`output.log`文件中，方便同学们进行调试（调试方法见[调试方法](./overview.md#调试方法)一节）。
 
 ### 实现优化pass
 
@@ -84,13 +90,84 @@ sysu::ConstantFolding::run(llvm::Module &M, llvm::ModuleAnalysisManager &MAM) {
 
 上述代码展示了如何通过循环遍历`llvm::Module`中所有指令，以上遍历方法可以作为大部分指令优化的框架。使用该框架只需要将算法针对单条指令的处理逻辑填入`...`所处的代码块中，再辅以对指令的操作（例如对操作数的替换、指令的插入移动与删除等）即可完成优化算法的实现。
 
-### 注册分析pass
-
-待补充
-
 ### 实现分析pass
 
-待补充
+以分析函数调用次数的`StaticCallCounter`为例，其定义需要添加到`optimizor.hpp`中：
+
+```C++
+class StaticCallCounter : public llvm::AnalysisInfoMixin<StaticCallCounter> {
+public:
+  using Result = llvm::MapVector<const llvm::Function *, unsigned>;
+  Result run(llvm::Module &module, llvm::ModuleAnalysisManager &);
+
+private:
+  // 分析pass中必须包含"static llvm::AnalysisKey Key"
+  static llvm::AnalysisKey Key;
+  friend struct llvm::AnalysisInfoMixin<StaticCallCounter>;
+};
+```
+
+分析pass和优化pass在定义时的区别在于：
+
+* 分析pass的继承对象`AnalysisInfoMixin`继承于优化pass的继承对象`PassInfoMixin`
+* 分析pass需要声明`static llvm::AnalysisKey Key`，因为其将作为分析pass区别于其他pass的唯一标识符被`AnalysisInfoMixin::ID()`函数返回
+* 分析pass需要声明`friend struct llvm::AnalysisInfoMixin<passName>`，否则`llvm::AnalysisKey Key`会因为是`AnalysisInfoMixin`的私有变量而报错
+* 分析pass的run函数返回自定义的结果而非`llvm::PreservedAnalyses`
+
+实现`StaticCallCounter`的主体代码如下：
+
+```C++
+sysu::StaticCallCounter::Result
+sysu::StaticCallCounter::run(Module &module, ModuleAnalysisManager &) {
+  MapVector<const Function *, unsigned> result;
+
+  for (auto &func: module) {
+    for (auto &BB: func) {
+      for (auto &inst: BB) {
+        // 尝试转为CallInst
+
+        // 获取被调用函数
+
+        // 统计函数在源代码中被调用次数
+        auto callCount = result.find(directInvoc);
+        if (result.end() == callCount) {
+          callCount = result.insert({directInvoc, 0}).first;
+        }
+        ++callCount->second;
+      }
+    }
+  }
+  return result;
+}
+```
+
+定义和实现分析pass后，我们需要在其他pass中调用该pass。下面的`StaticCallCounterPrinter`调用了定义、实现、注册好的`StaticCallCounter`，将分析结果以表格的形式输出到文件中：
+
+```C++
+PreservedAnalyses
+sysu::StaticCallCounterPrinter::run(Module &module,
+                                    ModuleAnalysisManager &MAM) {
+  // 通过MAM执行StaticCallCounter并返回分析结果
+  auto directCalls = MAM.getResult<StaticCallCounter>(module);
+
+  OS << "=================================================\n";
+  OS << "     sysu-optimizer: static analysis results\n";
+  OS << "=================================================\n";
+  OS << "       NAME             #N DIRECT CALLS\n";
+  OS << "-------------------------------------------------\n";
+
+  for (auto &callCount : directCalls) {
+      std::string funcName = callCount.first->getName().str();
+      funcName.resize(20, ' ');
+      OS << "       " << funcName << "   " << callCount.second << "\n";
+  }
+
+  OS << "-------------------------------------------------\n\n";
+  return PreservedAnalyses::all();
+}
+```
+
+需要调用分析pass时，可以通过`run()`函数传入的`ModuleAnalysisManager &MAM`进行调用在`MAM`中注册过的分析pass（注册方法见[注册优化pass和分析pass](#注册优化pass和分析pass)小节），返回类型为分析pass的`run()`函数中自定义的返回类型。通过分析pass和优化pass的灵活组合，同学们可以实现许多代码优化算法。
 
 ### Legacy Pass
 
@@ -198,4 +275,6 @@ FPM.addPass(CREATE_PASS);
 * [Writing an LLVM Pass](https://llvm.org/docs/WritingAnLLVMNewPMPass.html)
 * [LLVM New Pass Manager](https://llvm.org/docs/NewPassManager.html)
 * [LLVM Legacy Pass](https://llvm.org/docs/WritingAnLLVMPass.html)
-* [LLVM Pass其零：新的Pass机制](https://cloud.tencent.com/developer/article/2259875)
+* [LLVM Pass 其零：新的Pass机制](https://cloud.tencent.com/developer/article/2259875)
+* [LLVM Pass 其一：PassManager](https://cloud.tencent.com/developer/article/2259878)
+* [LLVM Pass 其二：Analysis与AnalysisManager](https://cloud.tencent.com/developer/article/2259881)
