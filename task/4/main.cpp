@@ -6,39 +6,39 @@
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Support/raw_ostream.h>
 
+#include "ConstantFolding.hpp"
+#include "StaticCallCounter.hpp"
+#include "StaticCallCounterPrinter.hpp"
+
 void
 opt(llvm::Module& mod)
 {
   using namespace llvm;
 
-  // Create the analysis managers.
-  // These must be declared in this order so that they are destroyed in the
-  // correct order due to inter-analysis-manager references.
-  LoopAnalysisManager LAM;
-  FunctionAnalysisManager FAM;
-  CGSCCAnalysisManager CGAM;
-  ModuleAnalysisManager MAM;
+  // 定义分析pass的管理器
+  LoopAnalysisManager lam;
+  FunctionAnalysisManager fam;
+  CGSCCAnalysisManager cgam;
+  ModuleAnalysisManager mam;
+  ModulePassManager mpm;
 
-  // Create the new pass manager builder.
-  // Take a look at the PassBuilder constructor parameters for more
-  // customization, e.g. specifying a TargetMachine or various debugging
-  // options.
-  PassBuilder PB;
+  // 注册分析pass的管理器
+  PassBuilder pb;
+  pb.registerModuleAnalyses(mam);
+  pb.registerCGSCCAnalyses(cgam);
+  pb.registerFunctionAnalyses(fam);
+  pb.registerLoopAnalyses(lam);
+  pb.crossRegisterProxies(lam, fam, cgam, mam);
 
-  // Register all the basic analyses with the managers.
-  PB.registerModuleAnalyses(MAM);
-  PB.registerCGSCCAnalyses(CGAM);
-  PB.registerFunctionAnalyses(FAM);
-  PB.registerLoopAnalyses(LAM);
-  PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+  // 添加分析pass到管理器中
+  mam.registerPass([]() { return StaticCallCounter(); });
 
-  // Create the pass manager.
-  // This one corresponds to a typical -O2 optimization pipeline.
-  ModulePassManager MPM =
-    PB.buildPerModuleDefaultPipeline(OptimizationLevel::O2);
+  // 添加优化pass到管理器中
+  mpm.addPass(StaticCallCounterPrinter(llvm::errs()));
+  mpm.addPass(ConstantFolding(llvm::errs()));
 
-  // Optimize the IR!
-  MPM.run(mod, MAM);
+  // 运行优化pass
+  mpm.run(mod, mam);
 }
 
 int

@@ -20,17 +20,24 @@ class Error(Exception):
 def get_tm(sp):
     val = -1
     ret = -1
-    matchObj = re.findall("TOTAL: (\\d*)H-(\\d*)M-(\\d*)S-(\\d*)us", sp)
-    if len(matchObj) == 0:
+    matchTimerObj = re.findall("Timer@(\\d*)-(\\d*): (\\d*)H-(\\d*)M-(\\d*)S-(\\d*)us", sp)
+    matchTotalObj = re.findall("TOTAL: (\\d*)H-(\\d*)M-(\\d*)S-(\\d*)us", sp)
+    matchRetObj = re.findall("Return Code: (\\d*)", sp)
+    if len(matchRetObj) == 0 or len(matchTotalObj) == 0:
+        # 没有计时区且没有总计时区，说明格式错误
+        val = -2
+        ret = -2
         return val, ret
-    matchObj = matchObj[-1]
-    val = int(matchObj[0])
-    val = val * 60 + int(matchObj[1])
-    val = val * 60 + int(matchObj[2])
-    val = val * 1000000 + int(matchObj[3])
-    matchObj = re.findall("Return Code: (\\d*)", sp)
-    matchObj = matchObj[-1]
-    ret = int(matchObj)
+    matchTotalObj = matchTotalObj[-1]
+    val = int(matchTotalObj[0])
+    val = val * 60 + int(matchTotalObj[1])
+    val = val * 60 + int(matchTotalObj[2])
+    val = val * 1000000 + int(matchTotalObj[3])
+    matchRetObj = matchRetObj[-1]
+    ret = int(matchRetObj)
+    if len(matchTimerObj) == 0:
+        # 没有计时区，说明为功能检测测例
+        val = -1
     return val, ret
 
 
@@ -142,12 +149,15 @@ def score_one(
 
             answer_time, answer_ret = get_tm(answer_err)
             output_time, output_ret = get_tm(output_err)
-            if answer_time == -1 and answer_ret == -1:
+            if answer_time == -2 and answer_ret == -2:
                 output = "标准答案运行输出格式有误，应增大运行时间限制"
                 raise Error()
-            if output_time == -1 and output_ret == -1:
+            if output_time == -2 and output_ret == -2:
                 output = "用户答案运行输出格式有误，检查生成的代码是否有误"
                 raise Error()
+            
+            if answer_time == -1:
+                max_score = 1.0
 
             fprint(f"O2 代码执行用时: {answer_time} us")
             fprint(f"sysu-lang 代码执行用时: {output_time} us")
@@ -170,10 +180,11 @@ def score_one(
                 raise Error()
 
             if answer_time == -1:
-                output = "标准答案未计时"
+                output = "功能检测通过"
+                score = max_score
                 raise Error()
             if output_time == -1:
-                output = "用户答案未计时"
+                output = "用户答案计时错误"
                 raise Error()
             if output_time == 0:
                 score = max_score
@@ -208,7 +219,11 @@ def score_all(cases_helper: CasesHelper) -> ScoreReport:
 
     for case in cases_helper.cases:
         test_entry = score_one(cases_helper, case)
-        score_report.tests.append(test_entry)
+        if test_entry.weight == 0:
+            if test_entry.score != test_entry.max_score:
+                break
+        else:
+            score_report.tests.append(test_entry)
         gc.collect()
 
     score_report.leader_board.append(

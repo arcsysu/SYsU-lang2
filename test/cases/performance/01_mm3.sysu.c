@@ -66,7 +66,7 @@ int main(){
     starttime();
 
     i = 0;
-    while (i < 5){    
+    while (i < 3){    
         mm(n, A, B, C);
         mm(n, A, C, B);
         i = i + 1;

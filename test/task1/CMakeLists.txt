@@ -27,7 +27,7 @@ add_custom_target(
   ${CMAKE_CURRENT_SOURCE_DIR}/answer.py
   ${_task0_out} # 传入 task0 的输出目录，而不是 TEST_CASES_DIR
   ${CMAKE_CURRENT_BINARY_DIR}
-  ${TASK1_CASES_TXT}
+  ${TEST_CASES_TXT}
   ${CLANG_EXECUTABLE}
   ${_rtlib_dir}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}

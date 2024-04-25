@@ -28,7 +28,7 @@ add_custom_target(
   ${CMAKE_CURRENT_SOURCE_DIR}/answer.py
   ${_task0_out}
   ${CMAKE_CURRENT_BINARY_DIR}
-  ${TASK2_CASES_TXT}
+  ${TEST_CASES_TXT}
   ${CLANG_EXECUTABLE}
   ${_rtlib_dir}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
