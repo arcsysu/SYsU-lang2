@@ -1,6 +1,6 @@
 ## 优化算法介绍
 
-下面是部分优化算法的示例和原理介绍。由于篇幅原因无法将每个算法的原理进行详细介绍，同学可以自行搜索相关算法的原理和实现方法，或者参考LLVM github仓库的[优化实现](https://github.com/llvm/llvm-project/tree/main/llvm/include/llvm/Transforms)学习算法原理。
+下面是部分优化算法的示例和原理介绍。由于篇幅原因无法将每个算法的原理进行详细介绍，此处仅提供算法实现的效果展示和简单的原理说明，同学可以通过其他方式自行搜索相关算法的原理和实现方法，或者参考LLVM github仓库的[优化实现](https://github.com/llvm/llvm-project/tree/main/llvm/include/llvm/Transforms)学习算法原理。
 
 ### 数据流优化
 
