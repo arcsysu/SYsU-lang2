@@ -1,6 +1,6 @@
 ## 常用API
 
-LLVM中几乎所有对象均继承于`llvm::Value`（继承关系见[Value继承关系图](#附录)）。
+LLVM中几乎所有对象均继承于`llvm::Value`（继承关系见[Value继承关系图](#附录)）。本文档可能无法覆盖实现优化需要的所有API。LLVM中代码即文档，如果不清楚是否存在对应功能的API，可以根据自己的需求查看对应类的头文件。
 
 ### 类型
 
@@ -66,7 +66,8 @@ I2: %5 = add nsw %4, %4
 指令查询use的相关操作：
 
 * `unsigned getNumUses()`：返回当前指令Use的数量（被使用的次数）
-* `op_range operands()`：返回当前指令Use的迭代器（用于遍历指令的所有Use）
+* `iterator_range<use_iterator> uses()`：返回当前指令Use的迭代器（Use数量与`getNumUses()`对应）
+* `op_range operands()`：返回当前指令Use的迭代器（用于遍历指令的所有操作数）
 * `User* getOperandList()`：返回当前指令所有操作数的列表
 * `Use& getOperandUse(unsigned idx)`：以`Use`形式返回第idx个操作数
 
@@ -108,15 +109,29 @@ private:
 * `Use *getNext()`：返回当前Use在链表中的下一个Use
 
 ```C++
+// 假设I: %3 = add nsw %1, %2
 Instruction *I = ...
-// 遍历指令所有的Use（遍历时使用引用）
+
+// 遍历指令所有的操作数（遍历时使用引用）
+// output: 操作数的定义指令
+// %1 = ...
+// %2 = ...
 for (Use& u : I->operands()) {
-  // 获取usee对应的指令
+  // 获取usee对应的指令，此时user为I
   Value* usee = u.get();
 
   // 下面两条指令等价，因为Use类对->的重载
   usee->print(mOut);
   u->print(mOut);
+}
+
+// 遍历指令所有的Use（遍历时使用引用）
+// output: 使用到I的结果的指令
+// %4 = ... %3, ...
+for (Use& u : I->uses()) {
+  // 获取user对应的指令，此时usee为I
+  Value* user = u.getUser();
+  user->print(mOut);
 }
 ```
 
@@ -179,7 +194,7 @@ for (Use& u : I->operands()) {
 * `ValueSymbolTable* getValueSymbolTable()`：获取函数符号表
 * `BasicBlockListType &getBasicBlockList()`：获取基本块表
 
-### Analysis Pass
+### 分析工具
 
 #### LoopAnalysis
 
@@ -196,7 +211,7 @@ llvm::PreservedAnalyses run(llvm::Module& mod,
   FunctionAnalysisManager fam;
   PassBuilder pb;
   fam.registerPass( [&]{return LoopAnalysis();} );
-  pb.registerFunctionAnalyses(FAM);
+  pb.registerFunctionAnalyses(fam);
 
   for (Function &func : mod) {
     LoopInfo& LI = fam.getResult<LoopAnalysis>(func);   
@@ -216,9 +231,58 @@ llvm::PreservedAnalyses run(llvm::Module& mod,
 * `unsigned getLoopDepth(const BlockT *BB)`：返回BB所在的循环深度
 * `bool isLoopHeader(const BlockT *BB)`：判断BB是否为循环header
 
+对于Loop有如下函数：
+
+* `unsigned getLoopDepth()`：返回循环深度
+* `unsigned getNumBlocks()`：返回循环中的基本块数量
+* `std::vector<BlockT *> &getBlocksVector()`：返回循环中所有基本块
+* `unsigned getNumBackEdges()`：返回back edges的数量
+* `const std::vector<LoopT *> &getSubLoops()`：返回内层循环
+* `LoopT *getParentLoop()`：返回父循环（若存在）
+* `bool contains(const BlockT *BB)`：判断BB是否在当前循环中
+* `BlockT *getHeader()`：返回循环的header基本块
+* `void getExitingBlocks(SmallVectorImpl<BlockT *> &ExitingBlocks)`：返回所有exiting基本块
+* `BlockT *getExitingBlock()`：若只有一个exiting基本块，则返回；否则返回nullptr
+* `BlockT *getLoopPreheader()`：返回循环的preheader基本块
+
 #### DominatorTree
 
+支配树（Dominance Tree）是一种用于描述基本块之间支配关系的数据结构。在程序的控制流图中，一个基本块A支配另一个基本块B，意味着无论程序执行路径如何，如果进入B，则一定会先经过A。支配树能够以树状结构表示这种支配关系。支配树有两个主要的概念：
 
+1. 支配关系（Dominance）：在控制流图中，基本块A支配基本块B，如果每条从图的入口节点到B的路径都必须经过A。如果A支配B，那么A被称为B的支配者，B被称为A的被支配者。
+2. 支配树（Dominance Tree）：支配树是控制流图中基本块之间支配关系的一种表示。它是一个树状结构，其中每个节点代表一个基本块，节点之间的父子关系表示最近支配关系。最近支配（immediate dominator，记作idom）表示节点的最近支配关系，若a idom b，则a是支配b且离b最近的节点。树的根节点是控制流图的入口基本块。
+
+下面是一个控制流图，其中的节点表示基本块，边表示程序执行基本块的顺序，节点1为入口基本块：
+
+![控制流图](../images/task4/CFG.png)
+
+该控制流图对应的支配树如下：
+
+![支配树](../images/task4/DominatorTree.png)
+
+在LLVM中，支配树使用数据结构`DominatorTree`表示，头文件为`llvm/IR/Dominators.h`。
+
+```C++
+llvm::PreservedAnalyses run(llvm::Module& mod,
+                            llvm::ModuleAnalysisManager& mam) {
+  DominatorTree domTree;
+
+  for (Function &func : mod) {
+    // 计算func的支配关系
+    domTree.recalculate(func);
+    ...
+  } 
+}
+```
+
+`DominatorTree`的常用API如下：
+
+* `bool dominates(const NodeT *A, const NodeT *B)`：判断节点A是否支配节点B（节点可以是基本块，也可以是指令）
+* `bool properlyDominates(const NodeT *A, const NodeT *B)`：判断节点A是否支配节点B且A与B不是同一个节点
+* `void getDescendants(NodeT *R, SmallVectorImpl<NodeT *> &Result)`：返回支配节点R的所有节点（包括R）
+* `NodeT* getRoot()`：返回支配树的根节点
+
+支配树与支配关系在基本块和代码移动时非常重要，如果我们希望一条指令移动到某个地方后能够影响后续某些基本块或指令，那么就需要将指令放在支配这些基本块或指令的位置。除了普通的支配树，LLVM还提供了后序支配树`PostDominatorTree`，其用法与`DominatorTree`类似，需要使用的同学们可以自行了解。
 
 ### 参考资料
 
@@ -231,3 +295,4 @@ llvm::PreservedAnalyses run(llvm::Module& mod,
 ### 附录
 
 ![Value继承关系图](../images/task4/Value.png)
+ 
