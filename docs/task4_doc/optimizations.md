@@ -17,7 +17,7 @@ int c = a + b;
 
 上面的例子展示了一条加法指令中的use-def链。由于加法指令`%add`的定义使用了`%0`和`%1`，因此指令`%0`和`%1`作为`%add`的操作数（operand）可以被`%add`通过use-def链搜索得到。
 
-#### 常量传播&常量传播
+#### 常量传播&常量折叠
 
 代表测例：`bitset-*.sysu.c`、`fft-*.sysu.c`、`if-combine*.sysu.c`
 
