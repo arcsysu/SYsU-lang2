@@ -134,6 +134,8 @@ int c = a + 2;
 
 支配树算法是一种对有向图结构的分析算法，分析图中各节点的支配关系，在编译器优化领域为其他优化提供重要信息。
 
+完整的支配树算法较为复杂，同学们可以直接调用API来构建支配树，或者查看相关资料。有暴力求解的算法也有[Lengauer–Tarjan 算法](https://www.cs.princeton.edu/courses/archive/fall03/cs528/handouts/a%20fast%20algorithm%20for%20finding.pdf)。[这个链接](https://oi-wiki.org/graph/dominator-tree/)里有详细的介绍，感兴趣的同学可以自行学习。
+
 #### 循环无关变量移动
 
 #### 循环展开
@@ -173,23 +175,23 @@ ans = ans + 20 * 60;
 
 控制流图(CFG)反映了基本块之间的关系，每个基本块都只有一个进入点(到达某个基本块时，一定是从基本块的第一条指令开始执行)和一个退出点(ret或br指令)，且这些br指令会指明其将会跳转到哪个基本块(1或2个目标基本块)，使用有向边将这些可能的跳转连接起来就构成了程序的控制流图。
 
-同学们可以直接调用Analysi Pass来构建控制流(API 见文档)，也可以自己手写一个，只需要从entry basic block开始遍历所有基本块，将br指令的边添加到图中即可。
+同学们可以直接调用Analysi Pass来构建控制流图(API 见文档)，也可以自己手写一个，只需要从entry basic block开始遍历所有基本块，将br指令的边添加到图中即可。
 
-同学们可以使用如下[指令](https://wisesciencewise.wordpress.com/2022/10/03/steps-to-generate-llvm-call-flow-graphcfg/)来可视化查看当前IR的控制流图，其中第三行语句可以使用在线工具显示
+同学们可以使用[指令](https://wisesciencewise.wordpress.com/2022/10/03/steps-to-generate-llvm-call-flow-graphcfg/)来可视化查看当前IR的控制流图，其中第三行语句可以使用在线工具显示
 ```
 clang -S -emit-llvm file.c -o file.ll
 opt -dot-cfg -disable-output -enable-new-pm=0 file.ll
 dot -Tpng -ofunction.png .function.dot
 ```
 
-可以看到类似于下图的控制流图
+可以看到控制流图
 ![control flow graph of binary search](../images/task4/binary_search_CFG.png)
 
-控制流优化即对控制流图进行优化，同学们观察IR时，可能会发现一些basic block是不可达的，或者一些basic block中只有一条return指令，为了执行这条指令，需要一次额外的跳转，需要花费更多时间。
+控制流简化即对控制流图进行简化，同学们观察IR时，可能会发现一些basic block是不可达的，或者一些basic block中只有一条return指令，为了执行这条指令，需要一次额外的跳转，需要花费更多时间。
 
 同时，有很多其他优化会局限在一个基本块内，因此通过合并较小的基本块，构造更大的基本块，将会创建更多优化机会。(也可以通过调整基本块的顺序来获得更好的layout，但这不属于控制流优化了)
 
-最为简单的控制流图即分析可以合并的基本块模式并将其合并，首先是可以删除不可达的基本块，然后是如果一个基本块的前缀基本块唯一，即只有一个基本块可以到达这个基本块，且该前缀基本块的后缀唯一，即该前缀基本块只会跳转到该基本块，则可以将这两个基本块合并，并删除跳转指令。如果多个块跳转到同一个块，且跳转的目标块以ret结尾，则可以考虑将目标块拷贝多份与前缀块进行合并，注意，这种合并未必是有利的。其余更多的模式同学们可以查阅资料或者自己思考。
+最为简单的控制流图简化即分析可以合并的基本块模式并将其合并，首先是可以删除不可达的基本块，然后是如果一个基本块的前缀基本块唯一，即只有一个基本块可以到达这个基本块，且该前缀基本块的后缀唯一，即该前缀基本块只会跳转到该基本块，则可以将这两个基本块合并，并删除跳转指令。如果多个块跳转到同一个块，且跳转的目标块以ret结尾，则可以考虑将目标块拷贝多份与前缀块进行合并，注意，这种合并未必是有利的。其余更多的模式同学们可以查阅资料或者自己思考。
 
 ### 指令级优化
 
@@ -199,9 +201,114 @@ dot -Tpng -ofunction.png .function.dot
 
 代表测例：所有performance测例
 
-难度：待补充
+难度：&#9733;&#9733;&#9733;&#9734;&#9734;
 
-待补充
+mem2reg优化是其他所有优化的基础，其为其他优化提供了更大的空间。**同学们应该优先完成该优化**。
+
+在理论课上，各位同学应该了解过静态单赋值(SSA)形式，即每个变量只会被赋值一次。完成实验三的同学们，如果认真阅读过LLVM IR的话，应该会发现在IR中，每个寄存器都只会被赋值一次，满足SSA形式，但是并不是每个变量都只会被赋值一次，每个被alloca出来的地址，可能会被多次赋值，这就不保证SSA形式了。即IR通过一些额外的空间来使得寄存器达到SSA形式。而这些额外的空间并不是必要的，即我们可以达到更完整的SSA形式。这就是mem2reg完成的工作
+如以下[例子](https://mapping-high-level-constructs-to-llvm-ir.readthedocs.io/en/latest/control-structures/ssa-phi.html)
+```C++
+int max(int a, int b) {
+  if (a > b) {
+    return a;
+  } else {
+    return b;
+  }
+}
+```
+我们有IR如下
+```
+define i32 @max(i32 %a, i32 %b) #0 {
+entry:
+  %retval = alloca i32, align 4
+  %a.addr = alloca i32, align 4
+  %b.addr = alloca i32, align 4
+  store i32 %a, i32* %a.addr, align 4
+  store i32 %b, i32* %b.addr, align 4
+  %0 = load i32, i32* %a.addr, align 4
+  %1 = load i32, i32* %b.addr, align 4
+  %cmp = icmp sgt i32 %0, %1
+  br i1 %cmp, label %if.then, label %if.else
+
+if.then:                                          ; preds = %entry
+  %2 = load i32, i32* %a.addr, align 4
+  store i32 %2, i32* %retval, align 4
+  br label %return
+
+if.else:                                          ; preds = %entry
+  %3 = load i32, i32* %b.addr, align 4
+  store i32 %3, i32* %retval, align 4
+  br label %return
+
+return:                                           ; preds = %if.else, %if.then
+  %4 = load i32, i32* %retval, align 4
+  ret i32 %4
+}
+```
+我们可以将其转换为如下IR(这个不是标准的LLVM IR，仅用来解释中间过程)
+```
+define i32 @max(i32 %a, i32 %b) {
+entry:
+  %0 = icmp sgt i32 %a, %b
+  br i1 %0, label %if.then, label %if.else
+
+if.then:
+  %retval = %a
+  br label %return
+
+if.else:
+  %retval = %b
+  br label %return
+
+return:
+  ret i32 %retval
+}
+```
+此时，可以发现我们删除了局部变量，这将节省大量运行时间(这里没有举局部数组的例子，因为想要去除数组，需要复杂的数据流分析，有兴趣的同学可以自己去了解，通常mem2reg优化也不会处理数组相关的变量)，但是寄存器不再是静态单赋值的了，这时候我们需要对寄存器重命名，并添加一条新指令，PHI指令(注意，PHI指令只能位于基本块的开头，即PHI指令前只能是PHI指令)。phi指令的值取决于我们从哪个基本块跳转到该基本块，如果前缀块是if.then，则其值为retval1，否则，其值为retval2
+```
+define i32 @max(i32 %a, i32 %b) {
+entry:
+  %0 = icmp sgt i32 %a, %b
+  br i1 %0, label %if.then, label %if.else
+
+if.then:
+  %retval1 = %a
+  br label %return
+
+if.else:
+  %retval2 = %b
+  br label %return
+
+return:
+  %retval = phi i32 [%retval1, %if.then], [%retval2, %if.else]
+  ret i32 %retval
+}
+```
+当然，LLVM中并没有%retval1 = %a这样的语句，因此实际上，我们将获得以下结果
+```
+define i32 @max(i32 %a, i32 %b) {
+entry:
+  %0 = icmp sgt i32 %a, %b
+  br i1 %0, label %if.then, label %if.else
+
+if.then:
+  br label %return
+
+if.else:
+  br label %return
+
+return:
+  %retval = phi i32 [%a, %if.then], [%b, %if.else]
+  ret i32 %retval
+}
+```
+而此时，我们就可以用其他优化方法对该IR进行更进一步的优化，比如控制流简化可以将return基本块与其之前的基本块融合。
+
+从刚刚的例子，同学们应该能了解到mem2reg的基本流程，删除alloca，寄存器重命名，以及插入PHI指令，实际上在这之前还有一步，就是构建支配树，因为mem2reg优化过程中需要使用支配树，所以在开始mem2reg前，需要先使用API构建好支配树。在构建好支配树后，我们就可以开始进行mem2reg优化。[参考资料](https://buaa-se-compiling.github.io/miniSysY-tutorial/challenge/mem2reg/help.html)
+
+
+
+
 
 #### 强度削弱
 
