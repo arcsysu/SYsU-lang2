@@ -42,22 +42,27 @@ if __name__ == "__main__":
         # 生成 LLVM IR
         ll_path = cases_helper.of_case_bindir("answer.ll", case, True)
         print(ll_path, end=" ... ", flush=True)
-        with open(ll_path, "w", encoding="utf-8") as f:
-            retn = subps.run(
-                [
-                    args.clang_exe,
-                    "-cc1",
-                    "-O0",
-                    "-S",
-                    "-emit-llvm",
-                    "-isystem",
-                    osp.join(args.rtlib, "include"),
-                    osp.join(args.srcdir, case.name),
-                    "-o",
-                    "-",
-                ],
-                stdout=f,
-            ).returncode
+        try:
+            with open(ll_path, "w", encoding="utf-8") as f:
+                retn = subps.run(
+                    [
+                        args.clang_exe,
+                        "-cc1",
+                        "-O0",
+                        "-S",
+                        "-emit-llvm",
+                        "-isystem",
+                        osp.join(args.rtlib, "include"),
+                        osp.join(args.srcdir, case.name),
+                        "-o",
+                        "-",
+                    ],
+                    stdout=f,
+                    timeout=30,
+                ).returncode
+        except subps.TimeoutExpired:
+            print("TIMEOUT")
+            continue
         if retn:
             print("FAIL", retn)
             exit(1)
@@ -66,21 +71,26 @@ if __name__ == "__main__":
         # 再将 LLVM IR 编译为二进制程序
         exe_path = cases_helper.of_case_bindir("answer.exe", case, True)
         print(exe_path, end=" ... ", flush=True)
-        with open(
-            cases_helper.of_case_bindir("answer.compile", case), "w", encoding="utf-8"
-        ) as f:
-            retn = subps.run(
-                [
-                    args.clang_exe,
-                    "-o",
-                    exe_path,
-                    "-O0",
-                    args.rtlib_a,
-                    ll_path,
-                ],
-                stdout=f,
-                stderr=f,
-            ).returncode
+        try:
+            with open(
+                cases_helper.of_case_bindir("answer.compile", case), "w", encoding="utf-8"
+            ) as f:
+                retn = subps.run(
+                    [
+                        args.clang_exe,
+                        "-o",
+                        exe_path,
+                        "-O0",
+                        args.rtlib_a,
+                        ll_path,
+                    ],
+                    stdout=f,
+                    stderr=f,
+                    timeout=30,
+                ).returncode
+        except subps.TimeoutExpired:
+            print("TIMEOUT")
+            continue
         if retn:
             print("FAIL", retn)
             exit(2)
