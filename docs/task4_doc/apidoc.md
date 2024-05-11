@@ -202,7 +202,7 @@ LLVM的循环结构一般如下：
 
 ![LLVM循环结构](../images/task4/loop-terminology.svg)
 
-对循环进行优化时，常常需要获取与循环相关的信息，而LLVM为开发者提供了对循环进行分析的Analysis Pass：`LoopAnalysis`。使用该Pass前，需要先进行Analysis Pass的注册（注册方式参考[Analysis Pass注册](./framework.md#注册transform-pass和analysis-pass)）。由于`LoopAnalysis`为Function级别的Analysis Pass，因此需要使用`FunctionAnalysisManager`。`LoopAnalysis`的头文件为`llvm/Analysis/LoopInfo.h`。
+对循环进行优化时，常常需要获取与循环相关的信息，而LLVM为开发者提供了对循环进行分析的Analysis Pass：`LoopAnalysis`。使用该Pass前，需要先进行Analysis Pass的注册（注册方式参考[Analysis Pass注册](./framework.md#注册transform-pass和analysis-pass)）。由于`LoopAnalysis`为Function级别的Analysis Pass，因此需要使用`FunctionAnalysisManager`。`LoopAnalysis`、`FunctionAnalysisManager`和`PassBuilder`的头文件分别为`llvm/Analysis/LoopInfo.h`、`llvm/IR/PassManager.h`、`llvm/Passes/PassBuilder.h`。
 
 ```C++
 llvm::PreservedAnalyses run(llvm::Module& mod,
