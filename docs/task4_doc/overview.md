@@ -49,7 +49,11 @@ ${task4_out}/task4 ${test3_out}/${case}/answer.ll ${output_dir}/output.ll > ${ou
 
 ### 测例修改
 
-在进行代码优化时，可能存在修改测例以验证优化是否可行的需求。由于测例的缓存机制，添加新测例进行测评需要将`/workspaces/SYsU-lang2/build`文件夹删除后重新配置项目。这里提供使用命令行编译调试单个测例的方式：
+在进行代码优化时，可能存在修改测例以验证优化是否可行的需求。由于测例的缓存机制，添加新测例进行测评需要将`/workspaces/SYsU-lang2/build`文件夹删除后重新构建项目：
+
+![](../images/task4/build_all_projects.png)
+
+重新构建后，使用命令行编译调试单个测例的方式：
 
 ```shell
 rtlib_include=/workspaces/SYsU-lang2/test/rtlib/include
@@ -58,13 +62,14 @@ case_path=/path/to/your/code.sysu.c
 ll_path=/path/to/code.ll
 opt_path=/path/to/code_opt.ll
 bin_path=/path/to/code_opt
+CC=/opt/SYsU-lang/llvm/install/bin/clang
 
 # 生成LLVM IR
-clang -cc1 -O0 -S -emit-llvm -isystem ${rtlib_include} ${case_path} -o ${ll_path}
+${CC} -cc1 -O0 -S -emit-llvm -isystem ${rtlib_include} ${case_path} -o ${ll_path}
 
 # 优化LLVM IR
 ${task4_out}/task4 ${ll_path} ${opt_path}
 
 # 将LLVM IR编译为二进制文件
-clang -O0 ${opt_path} ${rtlib_path} -o ${bin_path}
+${CC} -O0 ${opt_path} ${rtlib_path} -o ${bin_path}
 ```

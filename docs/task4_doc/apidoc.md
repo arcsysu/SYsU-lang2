@@ -214,6 +214,9 @@ llvm::PreservedAnalyses run(llvm::Module& mod,
   pb.registerFunctionAnalyses(fam);
 
   for (Function &func : mod) {
+    // 跳过函数声明
+    if(func.isDeclaration()) continue;
+
     LoopInfo& LI = fam.getResult<LoopAnalysis>(func);   
     // LI包含了mod中所有循环的信息
     for (Loop* LP : LI) {     
