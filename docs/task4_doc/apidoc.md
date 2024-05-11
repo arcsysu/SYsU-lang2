@@ -268,6 +268,9 @@ llvm::PreservedAnalyses run(llvm::Module& mod,
   DominatorTree domTree;
 
   for (Function &func : mod) {
+    // 跳过函数声明
+    if(func.isDeclaration()) continue;
+
     // 计算func的支配关系
     domTree.recalculate(func);
     ...
