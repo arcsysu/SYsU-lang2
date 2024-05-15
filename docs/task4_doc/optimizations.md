@@ -138,6 +138,8 @@ int c = a + 2;
 
 完整的支配树算法较为复杂，同学们可以直接调用API来构建支配树，或者查看相关资料。有暴力求解的算法也有[Lengauer–Tarjan 算法](https://www.cs.princeton.edu/courses/archive/fall03/cs528/handouts/a%20fast%20algorithm%20for%20finding.pdf)。[这个链接](https://oi-wiki.org/graph/dominator-tree/)里有详细的介绍，感兴趣的同学可以自行学习。
 
+关于支配树的作用，见mem2reg优化部分。
+
 #### 循环无关变量移动
 
 #### 循环展开
@@ -306,7 +308,332 @@ return:
 ```
 而此时，我们就可以用其他优化方法对该IR进行更进一步的优化，比如控制流简化可以将return基本块与其之前的基本块融合。
 
-从刚刚的例子，同学们应该能了解到mem2reg的基本流程，删除alloca，寄存器重命名，以及插入PHI指令，实际上在这之前还有一步，就是构建支配树，因为mem2reg优化过程中需要使用支配树，所以在开始mem2reg前，需要先使用API构建好支配树。在构建好支配树后，我们就可以开始进行mem2reg优化。[参考资料](https://buaa-se-compiling.github.io/miniSysY-tutorial/challenge/mem2reg/help.html)
+从刚刚的例子，同学们应该能了解到mem2reg的基本流程，插入PHI指令和变量重命名，实际上在这之前还有一步，就是构建支配树，因为mem2reg优化过程中需要使用支配树，所以在开始mem2reg前，需要先使用API构建好支配树。在构建好支配树后，我们就可以开始进行mem2reg优化。（后续代码取自LLVM源代码，有删减）
+
+构建支配树可以使用如下指令,其中fam是一个FunctionAnalysisManager
+```C++
+auto& DT = fam.getResult<DominatorTreeAnalysis>(func);
+```
+
+然后应该查找所有的alloca指令，从alloca指令出发，找到我们应该处理的所有指令。LLVM IR会将所有的alloca指令放在entry块中，所以我们可以遍历entry块中的指令，判断该指令是否是alloca指令，以及该alloca指令是否能够进行mem2reg优化，如果是alloca一个数组的话，那就不对其进行处理，以下是一个参考实现，我们可以通过这条alloca指令的User进行判断，如果这条alloca指令仅被load或者store指令使用，且store指令将其作为目标地址而不是存储的内容，那么这条alloca指令可以被mem2reg优化处理。
+```C++
+static bool
+isAllocaPromotable(const AllocaInst* AI)
+{
+  // Only allow direct and non-volatile loads and stores...
+  for (const User* U : AI->users()) {
+    if (const LoadInst* LI = dyn_cast<LoadInst>(U)) {
+      // Note that atomic loads can be transformed; atomic semantics do
+      // not have any meaning for a local alloca.
+      if (LI->getType() != AI->getAllocatedType())
+        return false;
+    } else if (const StoreInst* SI = dyn_cast<StoreInst>(U)) {
+      if (SI->getValueOperand() == AI ||
+          SI->getValueOperand()->getType() != AI->getAllocatedType())
+        return false; // Don't allow a store OF the AI, only INTO the AI.
+      // Note that atomic stores can be transformed; atomic semantics do
+      // not have any meaning for a local alloca.
+    } else {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+static void
+PromoteMemToReg(ArrayRef<AllocaInst*> Allocas, DominatorTree& DT)
+{
+  // If there is nothing to do, bail out...
+  if (Allocas.empty())
+    return;
+
+  PromoteMem2Reg(Allocas, DT).run();
+}
+
+static bool
+promoteMemoryToRegister(Function& F, DominatorTree& DT)
+{
+  std::vector<AllocaInst*> Allocas;
+  BasicBlock& BB = F.getEntryBlock(); // Get the entry node for the function
+  bool Changed = false;
+
+  while (true) {
+    Allocas.clear();
+
+    // Find allocas that are safe to promote, by looking at all instructions in
+    // the entry node
+    for (BasicBlock::iterator I = BB.begin(), E = --BB.end(); I != E; ++I)
+      if (AllocaInst* AI = dyn_cast<AllocaInst>(I)) // Is it an alloca?
+        if (isAllocaPromotable(AI))
+          Allocas.push_back(AI);
+
+    if (Allocas.empty())
+      break;
+
+    PromoteMemToReg(Allocas, DT);
+    Changed = true;
+  }
+  return Changed;
+}
+```
+
+接下来，我们首先需要对每一条alloca做处理，每一条alloca指令对应着一个局部变量，对这个局部变量的每一次store，相当于对这个变量的一次定义，因为在这个store指令之后，下一条store指令之前，对这个变量的使用，其实都是使用这次store存储的值，也即之后对这个变量的使用，其实只跟这次store存储的值有关，而跟这个变量无关。我们将store指令称为define，将load指令称为use。我们需要找出对同一个变量（即同一条alloca指令）的所有store指令和load指令，并记录他们所在的basic block。store指令所在的bb称为DefiningBlock，load指令所在的bb称为UsingBlock。
+
+之所以记录这两种基本块，是因为当我们有了这些信息，再结合支配树的信息（支配树中记录了节点的支配关系，如果节点A支配了节点B，那么当我们到达节点B时，就一定会经过节点A，如果节点A是DefiningBlock，且节点AB之间对于这个变量没有其他的define，那么在节点B时，这个变量的值就一定是节点A中所define的值，更复杂的情况见后续描述），我们就可以确定在每一个bb里，这些变量真正对应的值是什么。
+
+我们可以用一个结构体来来存储一条alloca的对应信息，如下
+```C++
+struct AllocaInfo
+{
+  SmallVector<BasicBlock*, 32> DefiningBlocks;
+  SmallVector<BasicBlock*, 32> UsingBlocks;
+
+  StoreInst* OnlyStore;
+  BasicBlock* OnlyBlock;
+  bool OnlyUsedInOneBlock;
+
+  void clear()
+  {
+    DefiningBlocks.clear();
+    UsingBlocks.clear();
+    OnlyStore = nullptr;
+    OnlyBlock = nullptr;
+    OnlyUsedInOneBlock = true;
+  }
+
+  /// Scan the uses of the specified alloca, filling in the AllocaInfo used
+  /// by the rest of the pass to reason about the uses of this alloca.
+  void AnalyzeAlloca(AllocaInst* AI)
+  {
+    clear();
+
+    // As we scan the uses of the alloca instruction, keep track of stores,
+    // and decide whether all of the loads and stores to the alloca are within
+    // the same basic block.
+    for (User* U : AI->users()) {
+      Instruction* User = cast<Instruction>(U);
+
+      if (StoreInst* SI = dyn_cast<StoreInst>(User)) {
+        // Remember the basic blocks which define new values for the alloca
+        DefiningBlocks.push_back(SI->getParent());
+        OnlyStore = SI;
+      } else {
+        LoadInst* LI = cast<LoadInst>(User);
+        // Otherwise it must be a load instruction, keep track of variable
+        // reads.
+        UsingBlocks.push_back(LI->getParent());
+      }
+
+      if (OnlyUsedInOneBlock) {
+        if (!OnlyBlock)
+          OnlyBlock = User->getParent();
+        else if (OnlyBlock != User->getParent())
+          OnlyUsedInOneBlock = false;
+      }
+    }
+  }
+};
+```
+
+然后开始对alloca指令进行处理。
+
+1、如果一条alloca指令没有被任何指令使用，那么这条alloca指令属于死代码，可以直接被删除。
+
+2、如果这条alloca指令只有一次store，则正常情况下，所有的load都使用这次store所存储的值，可以直接被这条store指令所存储的值替代（当然，存在特殊情况，即在未初始化时，使用变量，留到后续再进行处理）。
+
+3、如果这条alloca指令的所有load和store都存在与同一个bb中，这时候就不涉及复杂的bb支配关系，可以简单处理，load的值可以直接用同个bb中前一条对相同alloca指令的store指令的值替代（同样存在特殊情况，即load前不存在store，同样留到后续处理）。
+
+以下是一份参考处理，同学们需要实现其中的rewriteSingleStoreAlloca函数和promoteSingleBlockAlloca函数
+```C++
+AllocaInfo Info;
+for (unsigned AllocaNum = 0; AllocaNum != Allocas.size(); ++AllocaNum) {
+  AllocaInst* AI = Allocas[AllocaNum];
+
+  assert(isAllocaPromotable(AI) && "Cannot promote non-promotable alloca!");
+  assert(AI->getParent()->getParent() == &F &&
+          "All allocas should be in the same function, which is same as DF!");
+
+  if (AI->use_empty()) {
+    // If there are no uses of the alloca, just delete it now.
+    AI->eraseFromParent();
+
+    // Remove the alloca from the Allocas list, since it has been processed
+    RemoveFromAllocasList(AllocaNum);
+    continue;
+  }
+
+  // Calculate the set of read and write-locations for each alloca.  This is
+  // analogous to finding the 'uses' and 'definitions' of each variable.
+  Info.AnalyzeAlloca(AI);
+
+  // If there is only a single store to this value, replace any loads of
+  // it that are directly dominated by the definition with the value stored.
+  if (Info.DefiningBlocks.size() == 1) {
+    if (rewriteSingleStoreAlloca(AI, Info, LBI, DT)) {
+      // The alloca has been processed, move on.
+      RemoveFromAllocasList(AllocaNum);
+      continue;
+    }
+  }
+
+  // If the alloca is only read and written in one basic block, just perform a
+  // linear sweep over the block to eliminate it.
+  if (Info.OnlyUsedInOneBlock &&
+      promoteSingleBlockAlloca(AI, Info, LBI, DT)) {
+    // The alloca has been processed, move on.
+    RemoveFromAllocasList(AllocaNum);
+    continue;
+  }
+  ...
+}
+```
+
+rewriteSingleStoreAlloca函数完成对只有一条store指令的变量的处理，如果一条指令只有一个store，那我们可以尝试将其load指令替换为store的值，下面的代码是如何替换的一个示例，replaceAllUsesWith函数会将对load指令的所有use替换为store指令的第一个参数。
+```C++
+// Otherwise, we *can* safely rewrite this load.
+Value* ReplVal = OnlyStore->getOperand(0);
+// If the replacement value is the load, this must occur in unreachable
+// code.
+if (ReplVal == LI)
+  ReplVal = PoisonValue::get(LI->getType());
+
+// convertMetadataToAssumes(LI, ReplVal, DL, AC, &DT);
+LI->replaceAllUsesWith(ReplVal);
+LI->eraseFromParent();
+// LBI.deleteValue(LI);
+```
+当然，我们并不一定能够成功替换所有示例，我们需要对load指令做一个判断，即load指令必须被store指令所支配，即当我们执行到某条load指令时，我们必须已经执行过store指令，才能用store指令所存储的值替换load指令。这个判断分两种情况：
+
+1、如果load指令和store指令在同一个bb中，只需要store指令在load指令前，那么store就支配load。
+
+2、如果在不同bb里，那么就需要利用支配树。DT.dominates(A, B)会返回AB两个基本块的支配关系，当A支配B时，返回true。如果store所在基本块支配load所在基本块，那么store就支配load。
+
+promoteSingleBlockAlloca函数完成load和store指令都在同一个基本块内的变量（即alloca）的处理。我们可以将每个load的值替换为这个load指令前面最近的一个对相同变量的store指令存储的值。可以记录每条store指令即其对应位置，按照位置进行排序。对每条load指令，可以二分搜索store指令，找到前面最近的一条store指令。
+如果load指令前面没有store指令，有两种情况：
+
+1、这个变量没有对应store指令，即没有对应的定义，那么将这个变量赋值为未定义值即可
+```C++
+ReplVal = UndefValue::get(LI->getType());
+```
+
+2、这个load在所有的store指令之前，那么无法对这个load进行处理，跳过即可，因为可能存在循环，这个load的值可能取决于上一个循环的值。
+
+以上，是对于一些简单情况的alloca的处理，接下来将介绍对**复杂情况**的alloca，应该怎么处理。
+
+
+**插入PHI指令**
+
+首先对每个alloca指令，我们应该在合适的地方**插入phi指令**，这个合适的地方即store指令所在基本块的支配边界。
+
+支配边界是支配树中的一个概念，是支配节点和非支配节点的分界线。
+
+严格支配sdom，即d$\ne$ m，且 d dom m，则称 d sdom m
+
+节点x的支配边界是所有符合下面条件的节点w的集合：x是w的前驱支配节点，但不是w的严格支配节点。
+
+直观解释支配边界就是所有最近不能被 x 严格支配的节点的集合
+
+该图中，节点5是{5、6、7、8}的支配节点，{5、4、13、12}是5的支配边界
+
+![dom front](../images/task4/domFront.png)
+
+支配边界可以通过判断所有被支配的节点的子节点，是否还是被严格支配的，如果不是，那么其就是该节点的支配边界。
+
+
+在支配节点中，我们能够唯一的确定一个load指令，所load到的值是什么，但是在非支配节点中，也可能会使用到这个变量，也会有对这个变量的load，这时候，我们应该如何确定这个load的值呢。在非支配节点，这个load所取到的值，取决于在到达这条load指令前，程序所走过的路径，在不同的路径中，执行了不同的store指令，load到的值也就会改变，而phi指令，可以根据走过的路径来确定值，前面的例子中，%retval = phi i32 [%a, %if.then], [%b, %if.else]指令，会根据前面执行的基本块来确定phi指令的值，因此，我们只需要在store指令的支配边界插入phi指令，就可以保证在非支配节点中，也能使用phi替换掉load指令。
+
+为了构造支配边界，这边提供三种方案：
+1、暴力，来源编译器设计 第二版 499页，复杂度较高
+![dom front2](../images/task4/domFront2.png)
+
+2、A linear time algorithm for placing φ-nodes[论文](https://dl.acm.org/doi/10.1145/199448.199464)中提出了一种方法，可以尝试复现这种方法
+
+3、LLVM中的Analysis Pass中已经实现了2中提到的方法，可以直接调用相关api。
+
+当你使用了上面三种方案构建了支配边界后，就可以插入phi节点了，我们只需要在支配边界中插入相应变量的phi指令即可。
+如果使用方法1，则可以使用以下算法完成phi节点的插入，因为phi本身也是对变量的一个define，所以phi指令所在bb的支配边界也需要插入phi指令，但是该算法有个缺陷，就是其会在不必要的地方插入phi指令，因为我们在store所在的bb的所有支配边界都插入了phi，但是有的支配边界中，可能本身也有store指令，那么这个phi的值就会被这个store所替代，造成浪费。我们可以使用livein block来避免这种情况（后面讲）。
+![insert phi](../images/task4/insertPhi.png)
+
+而方法2则是边计算DF，边计算出phi指令的插入点，LLVM中也提供了相应的实现。示例代码如下
+```C++
+// If we haven't computed a numbering for the BB's in the function, do so
+// now.
+if (BBNumbers.empty()) {
+  unsigned ID = 0;
+  for (auto& BB : F)
+    BBNumbers[&BB] = ID++;
+}
+
+// Unique the set of defining blocks for efficient lookup.
+SmallPtrSet<BasicBlock*, 32> DefBlocks(Info.DefiningBlocks.begin(),
+                                        Info.DefiningBlocks.end());
+
+// Determine which blocks the value is live in.  These are blocks which lead
+// to uses.
+SmallPtrSet<BasicBlock*, 32> LiveInBlocks;
+ComputeLiveInBlocks(AI, Info, DefBlocks, LiveInBlocks);
+
+// At this point, we're committed to promoting the alloca using IDF's, and
+// the standard SSA construction algorithm.  Determine which blocks need phi
+// nodes and see if we can optimize out some work by avoiding insertion of
+// dead phi nodes.
+IDF.setLiveInBlocks(LiveInBlocks);
+IDF.setDefiningBlocks(DefBlocks);
+SmallVector<BasicBlock*, 32> PHIBlocks;
+IDF.calculate(PHIBlocks);
+llvm::sort(PHIBlocks, [this](BasicBlock* A, BasicBlock* B) {
+  return BBNumbers.find(A)->second < BBNumbers.find(B)->second;
+});
+```
+
+IDF.calculate(PHIBlocks);计算出了所有需要插入PHI指令的bb，具体算法感兴趣的同学可以自行去看论文和源码。注意到这边还使用了liveInBlock。如果一个bb中，对于某个变量存在一条store指令在所有load指令之前，那这个bb不是live的。而如果一个bb，不存在对这个变量的use（load）且其之后的所有bb也不use这个变量，那么这个bb也不是我们关心的，也不是live的。这些不是live的bb，就不需要插入phi指令，我们在liveInBlocks和支配边界的交集中插入phi指令。
+
+ComputeLiveInBlocks函数，可以从Info.UsingBlocks出发，首先，筛选Info.UsingBlocks中存在define的基本块，如果这些块中，存在store指令在最前面，则其不是live的，剩下的都是live的，然后不断添加这些块的前缀，因为这些块的前缀中，对变量的define也是live的，反复添加，知道无块可加，就找到了所有的liveInBlocks。IDF.calculate在计算插入Phi的基本块时，只会考虑LiveInBlocks。
+
+找到需要插入phi的基本块后，我们先往块中插入空的phi指令，如下
+```C++
+unsigned CurrentVersion = 0;
+for (BasicBlock* BB : PHIBlocks)
+  QueuePhiNode(BB, AllocaNum, CurrentVersion);
+```
+```C++
+bool
+PromoteMem2Reg::QueuePhiNode(BasicBlock* BB,
+                             unsigned AllocaNo,
+                             unsigned& Version)
+{
+  // Look up the basic-block in question.
+  // PHINode*& PN = NewPhiNodes[std::make_pair(BBNumbers[BB], AllocaNo)];
+
+  // If the BB already has a phi node added for the i'th alloca then we're done!
+  // if (PN)
+    // return false;
+
+  // Create a PhiNode using the dereferenced type... and add the phi-node to the
+  // BasicBlock.
+  PN = PHINode::Create(Allocas[AllocaNo]->getAllocatedType(),
+                       getNumPreds(BB),
+                       Allocas[AllocaNo]->getName() + "." + Twine(Version++));
+  PN->insertBefore(&*(BB->begin()));
+  // PhiToAllocaMap[PN] = AllocaNo;
+  return true;
+}
+```
+
+**变量重命名**
+
+在插入Phi节点后，我们需要用store指令和phi指令define的值，来替换所有对这个值的use，包括load指令和phi指令，即我们需要用store的第一个操作数，来替换load指令，以及phi指令的操作数（incoming values）。
+
+具体算法如下
+![rename1](../images/task4/rename1.png)
+![rename2](../images/task4/rename2.png)
+
+简单理解，就是按深搜的顺序，不断使用store和phi指令更新当前变量的值，并使用当前变量的值替换load指令和完善phi指令。同学们可以按照这个思路去实现这部分工作
+
+
+[参考资料](https://buaa-se-compiling.github.io/miniSysY-tutorial/challenge/mem2reg/help.html)
+
 
 
 
