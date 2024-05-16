@@ -5,6 +5,8 @@
 * 注册Transform Pass和Analysis Pass：在`main.cpp`中注册需要使用的Transform/Analysis Pass，并指定优化顺序
 * 实现Transform Pass和Analysis Pass：在optimizor.hpp中定义需要使用的Transform/Analysis Pass类，并在其他文件中实现定义的Transform/Analysis Pass的函数
 
+注意，增加文件后需要按照本节[清理缓存](#清理缓存)的方式重新配置CMake缓存，否则会导致报错。
+
 ### 注册Transform Pass和Analysis Pass
 
 注册Transform Pass的代码主要在`main.cpp`的`opt`函数中：
@@ -180,6 +182,12 @@ sysu::StaticCallCounterPrinter::run(Module &module,
 ```
 
 需要调用Analysis Pass时，可以通过`run()`函数传入的`ModuleAnalysisManager &MAM`进行调用在`MAM`中注册过的Analysis Pass（注册方法见注册Transform Pass和Analysis Pass小节），返回类型为Analysis Pass的`run()`函数中自定义的返回类型。通过Analysis Pass和Transform Pass的灵活组合，同学们可以实现许多代码优化算法。
+
+### 清理缓存
+
+增加新的Pass文件后，直接运行`task4-score`时可能会报新增加内容的`undefine reference ...`，这是增加新文件后CMake的缓存未更新导致新增文件未参与编译链接导致的错误。因此，在增加新文件后，需要按照以下方法重新构建CMake配置：
+
+![删除CMake Cache](../images/task4/delete_cache.png)
 
 ### Legacy Pass
 
