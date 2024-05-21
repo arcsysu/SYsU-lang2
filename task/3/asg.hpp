@@ -2,6 +2,7 @@
 
 #include "Obj.hpp"
 #include <string>
+#include <cstdint>
 
 namespace asg {
 
