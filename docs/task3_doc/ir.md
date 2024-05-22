@@ -1172,6 +1172,10 @@ llvm::Instruction *inst = Block->getTerminator();
 llvm::BasicBlock *curBlock = TheBuilder.GetInsertBlock();
 ```
 
+#### 基本块间跳转与变量传递
+
+参见 [二元表达式->与&&](#条件跳转指令) 中短路求值的实现方法
+
 ### 二元表达式
 
 #### 整数加法+
