@@ -119,7 +119,7 @@ EmitIR::operator()(ReturnStmt* obj)
   mCurIrb->CreateRet(retVal);
 
   auto exitBb = llvm::BasicBlock::Create(mCtx, "return_exit", mCurFunc);
-  mCurIrb = std::make_unique<llvm::IRBuilder<>>(exitBb);
+  mCurIrb->SetInsertPoint(exitBb);
 }
 
 //==============================================================================
@@ -152,7 +152,7 @@ EmitIR::operator()(FunctionDecl* obj)
   if (obj->body == nullptr)
     return;
   auto entryBb = llvm::BasicBlock::Create(mCtx, "entry", func);
-  mCurIrb = std::make_unique<llvm::IRBuilder<>>(entryBb);
+  mCurIrb->SetInsertPoint(entryBb);
   auto& entryIrb = *mCurIrb;
 
   // TODO: 添加对函数参数的处理
