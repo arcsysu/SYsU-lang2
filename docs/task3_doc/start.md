@@ -130,7 +130,7 @@ EmitIR::operator()(VarDecl* obj)
   llvm::appendToGlobalCtors(mMod, mCurFunc, 65535);
 
   auto entryBb = llvm::BasicBlock::Create(mCtx, "entry", mCurFunc);
-  mCurIrb = std::make_unique<llvm::IRBuilder<>>(entryBb);
+  mCurIrb->SetInsertPoint(entryBb);
   trans_init(gvar, obj->init);
   mCurIrb->CreateRet(nullptr);
 }
