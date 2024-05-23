@@ -4,6 +4,7 @@ import argparse
 import subprocess as subps
 import os.path as osp
 import gc
+import math
 
 sys.path.append(osp.abspath(__file__ + "/../.."))
 from common import CasesHelper, ScoreReport, print_parsed_args
@@ -191,7 +192,7 @@ def score_one(
             elif answer_time == 0:
                 score = 0.0
             else:
-                score = max_score * (answer_time / output_time)
+                score = max_score * math.sqrt((answer_time / output_time))
             # 超出分数则取最大分
             if score > max_score:
                 score = max_score
